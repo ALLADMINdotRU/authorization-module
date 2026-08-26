@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]           # [standard] = с поддержкой watchmode, websocket, и т.д.
+sqlalchemy[asyncio]         # asyncio-расширение SQLAlchemy
+python-dotenv
+pydantic-settings           # BaseSettings — читает .env
+python-jose[cryptography]   # генерация/проверка JWT-токенов
+passlib[bcrypt]             # хеширование паролей
+python-multipart            # нужен FastAPI для form-data (OAuth2PasswordRequestForm)
+ldap3                       # синхронная LDAP-библиотека (как во Flask)
+cryptography                # ── Шифрование паролей в БД ──
+asyncpg                     # асинхронный драйвер PostgreSQL (вместо psycopg2)
