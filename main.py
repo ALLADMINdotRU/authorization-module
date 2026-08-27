@@ -13,7 +13,9 @@ from fastapi import FastAPI
 
 # Импортируем наши модули
 from config import settings
-from database import engine, Base
+from database import engine, Base, get_db
+from auth import AuthModule                   # ← импорт модуля
+from auth.models import Base as AuthBase      # ← «тетрадь» таблиц модуля
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -34,7 +36,7 @@ fastapi_app = FastAPI(
 @fastapi_app.on_event("startup")
 async def on_startup():
     """
-    Создаёт таблицы при старте.
+    Создаёт таблицы модуля auth при старте.
 
     Разбор конструкции:
     - async with engine.begin() as conn:
@@ -47,7 +49,23 @@ async def on_startup():
         event loop (об этом паттерне подробнее на этапе с LDAP).
     """
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(AuthBase.metadata.create_all)
+
+
+# ═══════════════════════════════════════════════════════════════
+# ИНИЦИАЛИЗАЦИЯ МОДУЛЯ
+# ═══════════════════════════════════════════════════════════════
+# Создаём экземпляр модуля и передаём ему всё нужное
+auth_module = AuthModule()
+auth_module.init_app(
+    app=fastapi_app,
+    settings=settings,
+    get_db=get_db,
+)
+
+# Подключаем роутер модуля к приложению
+fastapi_app.include_router(auth_module.router)
+
 
 # ═══════════════════════════════════════════════════════════════
 # ТЕСТОВЫЙ МАРШРУТ (для проверки что сервер работает)
