@@ -16,7 +16,7 @@
 from fastapi import APIRouter
 
 # Импортируем «мост» для зависимостей
-from . import deps
+from . import deps, security
 
 # Импортируем модели — чтобы их metadata был доступен корню
 from . import models  # 
@@ -56,6 +56,13 @@ class AuthModule:
 
         # Кладём корневую get_db в «мост», чтобы роутеры могли её взять
         deps.set_get_db(get_db)
+
+        # передаём JWT-настройки
+        security.configure_jwt(
+            secret_key=settings.SECRET_KEY,
+            algorithm=settings.JWT_ALGORITHM,
+            expire_minutes=settings.JWT_EXPIRE_MINUTES,
+        )
 
         self._initialized = True
 
