@@ -253,3 +253,174 @@ def _parse_username(username_input: str) -> tuple[str, str | None]:
         parts = username_input.split('\\', 1)
         return parts[1], parts[0]
     return username_input, None
+
+
+# ═══════════════════════════════════════════════════════════════
+# БЛОК: CRUD ДЛЯ LDAP-СЕРВЕРОВ
+# ═══════════════════════════════════════════════════════════════
+# Эти функции используются роутером ldap_servers.py.
+# Вся работа с БД асинхронная (await), сессия db приходит параметром.
+
+
+async def get_all_servers(db: AsyncSession) -> list[LDAPServer]:
+    """
+    Получить ВСЕ LDAP-серверы (включая неактивные).
+
+    В отличие от get_active_servers (которая берёт только is_active=True),
+    здесь нужны ВСЕ — админ должен видеть и отключенные серверы,
+    чтобы их можно было включить/отредактировать.
+
+    Returns:
+        list[LDAPServer] — список серверов, отсортированных по приоритету
+    """
+    result = await db.execute(select(LDAPServer).order_by(LDAPServer.priority))
+    return list(result.scalars().all())
+
+
+async def get_server_by_id(db: AsyncSession, server_id: int) -> LDAPServer | None:
+    """
+    Найти сервер по ID (или None, если не найден).
+    """
+    return await db.get(LDAPServer, server_id)
+
+
+async def create_server(db: AsyncSession, bind_password: str | None = None, **kwargs,) -> LDAPServer:
+    """
+    Создать новый LDAP-сервер.
+
+    Args:
+        db: сессия БД
+        bind_password: bind-пароль (шифруется отдельно, не в kwargs)
+        **kwargs: остальные поля (name, host, port, domain, ...)
+
+    Почему bind_password отдельно:
+        Пароль нельзя просто положить в объект — его нужно ЗАШИФРОВАТЬ.
+        А остальные поля можно присвоить напрямую через **kwargs.
+
+    Returns:
+        LDAPServer — созданный объект
+
+    Raises:
+        ValueError — если сервер с таким именем уже существует
+    """
+    # ── 1. Проверяем уникальность имени ──
+    if "name" in kwargs:
+        result = await db.execute(
+            select(LDAPServer).where(LDAPServer.name == kwargs["name"])
+        )
+        if result.scalar_one_or_none():
+            raise ValueError(f"Сервер '{kwargs['name']}' уже существует")
+
+    # ── 2. Создаём объект (остальные поля через **kwargs) ──
+    # LDAPServer(**kwargs) = LDAPServer(name="DC01", host="...", port=389, ...)
+    server = LDAPServer(**kwargs)
+
+    # ── 3. Шифруем пароль (если передан) ──
+    # set_bind_password() внутри вызывает Fernet-шифрование
+    if bind_password:
+        server.set_bind_password(bind_password)
+
+    # ── 4. Сохраняем в БД ──
+    db.add(server)          # добавляем объект в сессию
+    await db.commit()       # фиксируем (INSERT в БД)
+    await db.refresh(server)  # перечитать из БД (получить id, created_at)
+
+    return server
+
+
+async def update_server(db: AsyncSession, server: LDAPServer, bind_password: str | None = None, **kwargs,) -> LDAPServer:
+    """
+    Обновить существующий сервер.
+
+    Args:
+        db: сессия БД
+        server: существующий объект LDAPServer (из БД)
+        bind_password: новый пароль (если нужно сменить; None = не менять)
+        **kwargs: поля для обновления (только переданные клиентом)
+
+    Логика пароля:
+        - если bind_password передан → шифруем и сохраняем
+        - если не передан (None) → оставляем старый пароль нетронутым
+    """
+    # ── 1. Обновляем обычные поля ──
+    # Проходим по всем переданным полям
+    for field, value in kwargs.items():
+        # hasattr(server, field) — есть ли такое поле у модели
+        # value is not None — не обновляем если пришёл None
+        if hasattr(server, field) and value is not None:
+            setattr(server, field, value)   # server.field = value
+
+    # ── 2. Шифруем пароль, если прислали новый ──
+    if bind_password:
+        server.set_bind_password(bind_password)
+
+    # ── 3. Сохраняем ──
+    await db.commit()
+    await db.refresh(server)
+
+    return server
+
+
+async def delete_server(db: AsyncSession, server: LDAPServer) -> None:
+    """
+    Удалить сервер из БД.
+    """
+    await db.delete(server)
+    await db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════
+# БЛОК: ПРОВЕРКА ПОДКЛЮЧЕНИЯ
+# ═══════════════════════════════════════════════════════════════
+
+async def test_connection(db: AsyncSession, server: LDAPServer,) -> tuple[bool, str]:
+    """
+    Проверить подключение к LDAP-серверу.
+
+    Используется в админке, чтобы проверить настройки сервера
+    без перезапуска приложения.
+
+    Returns:
+        tuple[bool, str] — (успех, сообщение)
+
+    Важно: сама проверка СИНХРОННАЯ (ldap3 блокирует), поэтому
+    оборачиваем её в run_in_executor, чтобы не блокировать event loop.
+    """
+    loop = asyncio.get_running_loop()
+
+    try:
+        # Запускаем синхронную проверку в отдельном потоке
+        ok = await loop.run_in_executor(
+            None,                  # None = стандартный пул потоков
+            _test_connection_sync,  # синхронная функция
+            server,                # её аргумент
+        )
+        if ok:
+            return True, "Подключение успешно"
+        return False, "Не удалось подключиться"
+
+    except Exception as e:
+        return False, f"Ошибка: {e}"
+
+
+def _test_connection_sync(server: LDAPServer) -> bool:
+    """
+    Синхронная проверка подключения.
+
+    Эта функция СИНХРОННАЯ (не async) — она блокирует поток,
+    пока идёт LDAP-запрос. Поэтому вызывается через run_in_executor.
+
+    Returns:
+        bool — True если подключение (bind) успешно
+    """
+    # Строим конфиг из модели (используем bind-учётку сервера)
+    config = build_ldap_config(server)
+
+    try:
+        # with LDAPConnection(config) — открываем соединение
+        # conn.is_connected — проверяем что bind прошёл
+        with LDAPConnection(config) as conn:
+            return conn.is_connected
+    except (LDAPBindError, LDAPConnectionError):
+        # Неверные учётки или сервер недоступен
+        return False

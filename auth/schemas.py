@@ -11,7 +11,7 @@ Pydantic-схемы (аналог WTForms во Flask).
 """
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -103,7 +103,7 @@ class LDAPServerCreate(ORMModel):
     """Что принимаем при создании LDAP-сервера."""
     name: str
     host: str
-    port: int = 389
+    port: int = Field(default=389, ge=1, le=65535)
     domain: str | None = None
     base_dn: str | None = None
     use_ssl: bool = False
@@ -137,7 +137,7 @@ class LDAPServerUpdate(ORMModel):
     """Что принимаем при обновлении (всё опционально)."""
     name: str | None = None
     host: str | None = None
-    port: int | None = None
+    port: int | None = Field(default=None, ge=1, le=65535)
     domain: str | None = None
     base_dn: str | None = None
     use_ssl: bool | None = None
