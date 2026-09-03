@@ -20,7 +20,7 @@ from . import deps, security
 
 # Импортируем модели — чтобы их metadata был доступен корню
 from . import models  # 
-
+from .routers import auth, users, roles, ldap_servers        # подключаем все руты
 
 class AuthModule:
     """
@@ -64,6 +64,12 @@ class AuthModule:
             expire_minutes=settings.JWT_EXPIRE_MINUTES,
         )
 
+        # Подключаем роутеры модуля
+        self.router.include_router(auth.router)
+        self.router.include_router(users.router)
+        self.router.include_router(roles.router)
+        self.router.include_router(ldap_servers.router)
+        
         self._initialized = True
 
     @property
