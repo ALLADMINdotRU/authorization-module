@@ -42,6 +42,12 @@ class RoleRead(ORMModel):
     description: str | None = None
 
 
+class RoleUpdate(ORMModel):
+    """Что принимаем при обновлении роли (всё опционально)."""
+    name: str | None = None
+    description: str | None = None
+
+
 # ═══════════════════════════════════════════════════════════════
 # СХЕМЫ ПОЛЬЗОВАТЕЛЯ
 # ═══════════════════════════════════════════════════════════════
