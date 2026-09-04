@@ -11,12 +11,8 @@
 """
 
 from datetime import datetime
-from passlib.context import CryptContext
+import bcrypt
 
-# ═══════════════════════════════════════════════════════════════
-# ХЕШИРОВАНИЕ ПАРОЛЕЙ (создаем хэш сумму, которую нельзя расшифровать)
-# ═══════════════════════════════════════════════════════════════
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")    # используй алгоритм bcrypt , старые алгоритмы автоматически помечай устаревшими
 
 # ═══════════════════════════════════════════════════════════════
 # ИМПОРТЫ SQLAlchemy (современный синтаксис 2.0)
@@ -135,14 +131,26 @@ class User(Base):
 
     # ── Методы пароля (для local-пользователей) ──
     def set_password(self, password: str):
-        """Установить хеш пароля."""
-        self.password_hash = pwd_context.hash(password)
+        """Установить хеш пароля. (bcrypt напрямую)"""
+        self.password_hash = bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt(),              # соль генерируется автоматически
+        ).decode("utf-8")                  # храним как строку
+
 
     def check_password(self, password: str) -> bool:
-        """Проверить пароль (LDAP-пользователи всегда False)."""
+        """
+        Проверить пароль.
+
+        bcrypt.checkpw(password_bytes, hash_bytes) — сравнивает.
+        Возвращает True/False.
+        """
         if not self.password_hash:
             return False
-        return pwd_context.verify(password, self.password_hash)
+        return bcrypt.checkpw(
+            password.encode("utf-8"),
+            self.password_hash.encode("utf-8"),
+        )
 
     # ── Методы ролей ──
     def has_role(self, role_name: str) -> bool:

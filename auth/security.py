@@ -5,7 +5,8 @@
 JWT-аутентификация (аналог Flask-Login, но на токенах).
 
 Что здесь:
-1. Хеширование паролей (pwd_context) — уже знакомо
+
+1. Определения зависимостей
 2. Создание JWT-токена (create_access_token)
 3. Проверка токена и получение пользователя (get_current_user)
 4. Проверка роли admin (admin_required)
@@ -16,7 +17,6 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

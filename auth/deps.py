@@ -26,16 +26,19 @@ def set_get_db(get_db_func):
     _get_db = get_db_func
 
 
-def get_db():
+async  def get_db():
     """
     Возвращает корневую get_db (для использования в Depends).
 
-    Если модуль не инициализирован — кидаем понятную ошибку.
+    Так как корневая get_db — это АСИНХРОННЫЙ генератор (async def + yield),
+    мы должны «передать» его через async for, а не yield from.
     """
     if _get_db is None:
         raise RuntimeError(
             "Модуль auth не инициализирован. "
             "Вызови auth_module.init_app(...) до использования роутов."
         )
-    # Делегируем корневой функции (она сама yield'ит сессию)
-    yield from _get_db()
+    # async for — перебираем асинхронный генератор корня
+    # и отдаём каждую сессию дальше
+    async for db in _get_db():
+        yield db

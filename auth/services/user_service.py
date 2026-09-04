@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
-from ..models import pwd_context
 
 
 async def get_all_users(db: AsyncSession) -> list[User]:

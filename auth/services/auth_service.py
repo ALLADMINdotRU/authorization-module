@@ -16,7 +16,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
-from ..models import pwd_context
 from . import ldap_service
 
 logger = logging.getLogger(__name__)
@@ -71,8 +70,3 @@ async def authenticate(db: AsyncSession, username: str, password: str):
     # 4. Ничего не подошло
     logger.info(f"Аутентификация не удалась: {username}")
     return None
-
-
-async def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Проверить пароль по хешу (для локальной авторизации)."""
-    return pwd_context.verify(plain_password, hashed_password)
