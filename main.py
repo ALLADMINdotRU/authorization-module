@@ -13,10 +13,10 @@ from fastapi import FastAPI
 
 # Импортируем наши модули
 from config import settings
-from database import engine, Base, get_db
+from database import engine, Base, get_db, AsyncSessionLocal
 from auth import AuthModule                   # ← импорт модуля
 from auth.models import Base as AuthBase      # ← «тетрадь» таблиц модуля
-
+from auth.seed import seed_defaults           # ← импорт seed
 
 # ═══════════════════════════════════════════════════════════════
 # СОЗДАЁМ ПРИЛОЖЕНИЕ
@@ -29,14 +29,14 @@ fastapi_app = FastAPI(
 
 
 # ═══════════════════════════════════════════════════════════════
-# СОБЫТИЕ: СТАРТ ПРИЛОЖЕНИЯ
+# СОБЫТИЕ: СТАРТ ПРИЛОЖЕНИЯ  — создаём таблицы и seed-данные
 # ═══════════════════════════════════════════════════════════════
 # @fastapi_app.on_event("startup") — аналог вызова seed_defaults() в create_app()
 # Выполняется ОДИН раз при старте сервера
 @fastapi_app.on_event("startup")
 async def on_startup():
     """
-    Создаёт таблицы модуля auth при старте.
+    Создаёт таблицы модуля auth при старте и стандартные роли/админа..
 
     Разбор конструкции:
     - async with engine.begin() as conn:
@@ -48,8 +48,14 @@ async def on_startup():
         run_sync запускает её в отдельном потоке, чтобы не блокировать
         event loop (об этом паттерне подробнее на этапе с LDAP).
     """
+    # 1. Создаём таблицы
     async with engine.begin() as conn:
         await conn.run_sync(AuthBase.metadata.create_all)
+
+    # 2. Seed: роли и админ
+    # Открываем отдельную сессию для seed
+    async with AsyncSessionLocal() as db:
+        await seed_defaults(db)
 
 
 # ═══════════════════════════════════════════════════════════════
