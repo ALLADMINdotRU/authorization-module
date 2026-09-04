@@ -19,6 +19,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload   
 
 from .deps import get_db
 from .models import User
@@ -137,7 +138,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise credentials_exception
 
     # Ищем пользователя в БД
-    result = await db.execute(select(User).where(User.username == token_data.username))
+    result = await db.execute(select(User).where(User.username == token_data.username).options(selectinload(User.roles)))
     user = result.scalar_one_or_none()
 
     if user is None:

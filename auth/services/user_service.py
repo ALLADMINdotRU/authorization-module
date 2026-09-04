@@ -69,3 +69,26 @@ async def update_user(db: AsyncSession, user: User, **kwargs) -> User:
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def delete_user(db: AsyncSession, user: User, deleted_by_user_id: int) -> None:
+    """
+    Мягкое удаление пользователя.
+
+    Не удаляет строку из БД физически, а помечает:
+    - is_deleted = True
+    - deleted_at = текущее время
+    - deleted_by = id того, кто удалил
+    - is_active = False (деактивируем)
+
+    Args:
+        db: сессия БД
+        user: объект User для удаления
+        deleted_by_user_id: id администратора, который удаляет (для аудита)
+    """
+    # soft_delete — метод модели User (см. models.py)
+    # он сам проставляет все флаги
+    user.soft_delete(deleted_by_user_id)
+
+    # Сохраняем изменения
+    await db.commit()
