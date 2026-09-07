@@ -25,7 +25,7 @@ from ..services import role_service
 # prefix="/admin/roles" — все URL начинаются с /auth/admin/roles
 # (потому что главный router в AuthModule имеет prefix="/auth")
 # tags=["admin-roles"] — группировка в Swagger
-router = APIRouter(prefix="/admin/roles", tags=["admin-roles"])
+router = APIRouter(prefix="/admin/res/roles", tags=["admin-roles"])
 
 
 # ═══════════════════════════════════════════════════════════════
