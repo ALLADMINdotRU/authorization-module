@@ -1,8 +1,11 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+import { CssBaseline, ThemeProvider, createTheme } from "@mui/material"
 import { Provider } from "react-redux"
-import { App } from "./App"
+import { RouterProvider } from "react-router-dom"
+import { router } from "./app/router"
 import { store } from "./app/store"
+import { NotificationSnackbar } from "./shared/notifications"
 import "./main.css"
 const container = document.getElementById("root")
 
@@ -11,9 +14,27 @@ if (container) {
 
   root.render(
     <StrictMode>
-      <Provider store={store}>
-        <App />
-      </Provider>
+      <ThemeProvider
+        theme={createTheme({
+          components: {
+            MuiCssBaseline: {
+              styleOverrides: {
+                body: {
+                  background:
+                    "linear-gradient(135deg, #fdfdfd 0%, #d7dcf7 100%)",
+                  minHeight: "100vh",
+                },
+              },
+            },
+          },
+        })}
+      >
+        <CssBaseline />
+        <Provider store={store}>
+          <RouterProvider router={router} />
+          <NotificationSnackbar />
+        </Provider>
+      </ThemeProvider>
     </StrictMode>,
   )
 } else {

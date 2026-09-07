@@ -4,9 +4,10 @@ import prettierConfig from "eslint-config-prettier/flat"
 import reactPlugin from "eslint-plugin-react"
 import reactHooksPlugin from "eslint-plugin-react-hooks"
 import globals from "globals"
-import { config, configs } from "typescript-eslint"
+import { defineConfig } from "eslint/config"
+import { configs } from "typescript-eslint"
 
-const eslintConfig = config(
+const eslintConfig = defineConfig(
   {
     name: "global-ignores",
     ignores: [
