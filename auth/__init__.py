@@ -33,7 +33,7 @@ class AuthModule:
 
     def __init__(self):
         # Главный роутер модуля. Все эндпоинты будут под префиксом /auth
-        self.router = APIRouter(prefix="/auth", tags=["auth"])
+        self.router = APIRouter(prefix="/auth")
         # Флаг: был ли вызван init_app (защита от ошибок)
         self._initialized = False
 

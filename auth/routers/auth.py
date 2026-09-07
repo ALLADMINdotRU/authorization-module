@@ -2,21 +2,17 @@
 # auth/routers/auth.py
 # ═══════════════════════════════════════════════════════════════
 """
-Роуты аутентификации: вход (получение токена), профиль.
+Роуты аутентификации: вход (cookie), , выход, профиль.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User
 from ..schemas import Token, UserRead
-from ..security import (
-    create_access_token,
-    get_current_user,
-    get_current_active_user,
-)
+from .. import security 
 from ..services import auth_service
 
 router = APIRouter(tags=["auth"])
@@ -25,21 +21,17 @@ router = APIRouter(tags=["auth"])
 # ═══════════════════════════════════════════════════════════════
 # ВХОД — получение JWT-токена
 # ═══════════════════════════════════════════════════════════════
-@router.post("/token", response_model=Token)
+@router.post("/login")
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
-):
+    ):
     """
-    Вход в систему → выдаёт JWT-токен.
+    Вход → ставит JWT-токен в HttpOnly cookie.
 
-    OAuth2PasswordRequestForm — стандартная форма FastAPI.
-    Она ожидает, что клиент пришлёт (form-data, НЕ JSON):
-        username: логин
-        password: пароль
-
-    В Swagger (/docs) для этого роута появится кнопка "Try it out",
-    где можно ввести логин/пароль.
+    Токен НЕ возвращается в JSON — он прячется в cookie,
+    которую JS не может прочитать (защита от XSS).
     """
     # Аутентифицируем (локально или через LDAP)
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
@@ -48,13 +40,35 @@ async def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Неверный логин или пароль",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Создаём токен (кладём логин в поле "sub")
-    access_token = create_access_token(data={"sub": user.username})
+    access_token = security.create_access_token(data={"sub": user.username})
 
-    return Token(access_token=access_token, token_type="bearer")
+    # Ставим HttpOnly cookie
+    response.set_cookie(
+        key=security.COOKIE_NAME,                               # имя cookie (из security.py)
+        value=access_token,
+        httponly=True,                                          # JS не может прочитать
+        secure=security.COOKIE_SECURE,                          # только HTTPS (в проде True)
+        samesite="lax",                                         # защита от CSRF
+        max_age=security.ACCESS_TOKEN_EXPIRE_MINUTES * 60,      # срок жизни (сек)
+    )
+
+    return {"message": "Вход выполнен"}
+
+
+# ═══════════════════════════════════════════════════════════════
+# Выход → удаляет cookie с токеном.
+# ═══════════════════════════════════════════════════════════════
+@router.post("/logout")
+async def logout(response: Response):
+    """
+    Выход → удаляет cookie с токеном.
+    """
+    response.delete_cookie(security.COOKIE_NAME)
+    return {"message": "Выход выполнен"}
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -62,7 +76,7 @@ async def login(
 # ═══════════════════════════════════════════════════════════════
 @router.get("/me", response_model=UserRead)
 async def read_me(
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(security.get_current_active_user),
 ):
     """
     Информация о текущем пользователе.

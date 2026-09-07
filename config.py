@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"                     # алгоритм подписи (HS256 = HMAC+SHA256)
     JWT_EXPIRE_MINUTES: int = 60                     # время жизни токена в минутах
 
+    COOKIE_SECURE: bool =False                       # http (False) vs https (True)
+
     # ── Логирование ──
     LOG_LEVEL: str = "INFO"                          # DEBUG, INFO, WARNING, ERROR
 

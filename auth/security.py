@@ -15,12 +15,11 @@ JWT-аутентификация (аналог Flask-Login, но на токен
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload   
-
+from fastapi import Request
 from .deps import get_db
 from .models import User
 from .schemas import TokenData
@@ -37,29 +36,23 @@ from .schemas import TokenData
 SECRET_KEY = None
 ALGORITHM = None
 ACCESS_TOKEN_EXPIRE_MINUTES = None
+COOKIE_NAME = "access_token"
+COOKIE_SECURE = False 
 
-
-def configure_jwt(secret_key: str, algorithm: str, expire_minutes: int):
+def configure_jwt(secret_key: str, algorithm: str, expire_minutes: int, cookie_name="access_token", cookie_secure=False):
     """
     Вызывается корнем в init_app(). Заполняет настройки JWT.
 
     Зачем так: модуль переносимый, он не знает SECRET_KEY чужого
     проекта. Корень передаёт их сюда.
     """
-    global SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+    global SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_NAME, COOKIE_SECURE
     SECRET_KEY = secret_key
     ALGORITHM = algorithm
     ACCESS_TOKEN_EXPIRE_MINUTES = expire_minutes
+    COOKIE_NAME = cookie_name
+    COOKIE_SECURE = cookie_secure
 
-
-# ═══════════════════════════════════════════════════════════════
-# OAuth2PasswordBearer — точка входа для токена
-# ═══════════════════════════════════════════════════════════════
-# Это стандартный механизм FastAPI: он описывает, что клиент
-# должен присылать токен в заголовке "Authorization: Bearer <токен>".
-# tokenUrl — куда клиент должен ходить за токеном (страница логина).
-# В Swagger ( /docs ) появится кнопка "Authorize".
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -99,14 +92,13 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 # ═══════════════════════════════════════════════════════════════
 # ПОЛУЧЕНИЕ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (аналог current_user в Flask)
 # ═══════════════════════════════════════════════════════════════
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db),) -> User:
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db),) -> User:
     """
-    Достаёт пользователя по JWT-токену.
+    Достаёт пользователя по JWT-токену из HttpOnly cookie.
 
-    Используется как зависимость в роутерах:
-        @router.get("/me")
-        async def me(user: User = Depends(get_current_user)):
-            ...
+    Токен теперь хранится в cookie (httponly), а не в заголовке
+    Authorization. Браузер автоматически шлёт cookie при запросе.
+
 
     Алгоритм:
     1. Получить токен из заголовка (это делает oauth2_scheme)
@@ -119,8 +111,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Не удалось проверить учетные данные",
-        headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Достаём токен из cookie
+    token = request.cookies.get(COOKIE_NAME)
+    if token is None:
+        raise credentials_exception
 
     try:
         # Раскодируем токен (проверяет подпись и срок годности)
