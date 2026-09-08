@@ -14,7 +14,7 @@ from ..schemas import UserCreate, UserRead, UserUpdate
 from ..security import admin_required
 from ..services import user_service
 
-router = APIRouter(prefix="/admin/res/users", tags=["admin-users"])
+router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
 
 @router.get("", response_model=list[UserRead])

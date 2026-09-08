@@ -10,9 +10,14 @@
 3. Нет зависимости от Flask-SQLAlchemy
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import bcrypt
 
+# ═══════════════════════════════════════════════════════════════
+# helper для чистоты кода
+# ═══════════════════════════════════════════════════════════════
+def utc_now():
+    return datetime.now(timezone.utc)
 
 # ═══════════════════════════════════════════════════════════════
 # ИМПОРТЫ SQLAlchemy (современный синтаксис 2.0)
@@ -114,7 +119,7 @@ class User(Base):
 
     # ── Статус ──
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     auth_method: Mapped[str] = mapped_column(String(20), default="local")  # 'local' | 'ldap'
 
     # ── Мягкое удаление ──
@@ -165,7 +170,7 @@ class User(Base):
     def soft_delete(self, deleted_by_user_id: int):
         """Пометить удалённым."""
         self.is_deleted = True
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = utc_now()
         self.deleted_by = deleted_by_user_id
         self.is_active = False
 
@@ -218,9 +223,9 @@ class LDAPServer(Base):
     auto_login_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # ── Даты ──
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=utc_now, onupdate=utc_now
     )
 
     # ── Свойство: полный URL ──

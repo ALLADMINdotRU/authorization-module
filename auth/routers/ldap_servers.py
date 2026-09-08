@@ -19,7 +19,7 @@ from ..schemas import LDAPServerCreate, LDAPServerRead, LDAPServerUpdate
 from ..security import admin_required
 from ..services import ldap_service
 
-router = APIRouter(prefix="/admin/res/ldap-servers", tags=["admin-ldap"])
+router = APIRouter(prefix="/admin/rest/ldap-servers", tags=["admin-ldap"])
 
 
 # ═══════════════════════════════════════════════════════════════
