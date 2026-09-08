@@ -14,7 +14,7 @@ from ..models import User
 async def get_all_users(db: AsyncSession) -> list[User]:
     """Все НЕудалённые пользователи."""
     result = await db.execute(
-        select(User).where(User.is_deleted == False).order_by(User.username)  # 
+        select(User).where(~User.is_deleted).order_by(User.username)  # выбираем всех не удаленных пользователей
     )
     return list(result.scalars().all())
 
