@@ -10,14 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User
-from ..schemas import UserCreate, UserRead, UserUpdate
+from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate
 from ..security import admin_required
 from ..services import user_service
 
 router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
 
-@router.get("", response_model=list[UserRead])
+@router.get("", response_model=list[UserAdminRead])
 async def list_users(db: AsyncSession = Depends(get_db),  _admin: User = Depends(admin_required)):
     """Список всех пользователей (только админ)."""
     return await user_service.get_all_users(db)
@@ -32,7 +32,7 @@ async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db),  _ad
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/{user_id}", response_model=UserRead)
+@router.get("/{user_id}", response_model=UserAdminRead)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db), _admin: User = Depends(admin_required)):
     """Получить пользователя по ID."""
     user = await user_service.get_user_by_id(db, user_id)
