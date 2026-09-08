@@ -28,6 +28,13 @@ class Settings(BaseSettings):
 
     COOKIE_SECURE: bool =False                       # http (False) vs https (True)
 
+    # ── Rate Limiting (защита от брутфорса) ──
+    RATE_LIMIT_ENABLED: bool = True                  # вкл/выкл всей защиты
+    RATE_LIMIT_STORAGE_URI: str = "memory://"        # memory:// | redis://localhost:6379
+    RATE_LIMIT_DEFAULT: str = "1000/hour"            # общий лимит на все эндпоинты
+    RATE_LIMIT_LOGIN: str = "5/minute"               # лимит для /login
+    RATE_LIMIT_KEY_FUNC: str = "ip"                  # "ip" | "username" | "ip+username"
+    
     # ── Логирование ──
     LOG_LEVEL: str = "INFO"                          # DEBUG, INFO, WARNING, ERROR
 

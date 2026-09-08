@@ -5,7 +5,7 @@
 Роуты аутентификации: вход (cookie), , выход, профиль.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +14,7 @@ from ..models import User
 from ..schemas import Token, UserRead
 from .. import security 
 from ..services import auth_service
+from ..middleware.rate_limit import limiter, get_login_limit
 
 router = APIRouter(tags=["auth"])
 
@@ -22,7 +23,9 @@ router = APIRouter(tags=["auth"])
 # ВХОД — получение JWT-токена
 # ═══════════════════════════════════════════════════════════════
 @router.post("/login")
+@limiter.limit(get_login_limit)   # лимит читается из settings (RATE_LIMIT_LOGIN)
 async def login(
+    request: Request,              # обязателен для slowapi
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),

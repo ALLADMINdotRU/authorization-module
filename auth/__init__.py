@@ -20,7 +20,9 @@ from . import deps, security
 
 # Импортируем модели — чтобы их metadata был доступен корню
 from . import models  # 
-from .routers import auth, users, roles, ldap_servers        # подключаем все руты
+
+# Rate limiting (настраивается в init_app из settings)
+from .middleware.rate_limit import setup_rate_limiting
 
 class AuthModule:
     """
@@ -46,10 +48,13 @@ class AuthModule:
             settings: настройки приложения (Pydantic Settings)
             get_db: корневая асинхронная зависимость сессии БД
 
-        Что здесь происходит:
+        Что здесь происходит (порядок ВАЖЕН):
         1. Сохраняем настройки и зависимость сессии
         2. Передаём get_db в «мост» (deps.py)
-        3. (На этапах 4-7) подключим роутеры и security
+        3. Передаём JWT-настройки
+        4. Настраиваем rate limiting (создаёт limiter из settings)
+        5. Импортируем роутеры ПОСЛЕ настройки rate limiting
+        6. Подключаем роутеры
         """
         self.app = app
         self.settings = settings
@@ -63,6 +68,13 @@ class AuthModule:
             algorithm=settings.JWT_ALGORITHM,
             expire_minutes=settings.JWT_EXPIRE_MINUTES,
         )
+
+        # Настраиваем rate limiting (защита от брутфорса)
+        setup_rate_limiting(app, settings)
+
+        # Импортируем роутеры ПОСЛЕ настройки rate limiting
+        # (декораторы @limiter.limit() в них должны видеть готовый limiter)
+        from .routers import auth, users, roles, ldap_servers
 
         # Подключаем роутеры модуля
         self.router.include_router(auth.router)

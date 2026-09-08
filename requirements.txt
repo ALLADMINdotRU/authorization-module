@@ -9,3 +9,4 @@ python-multipart            # нужен FastAPI для form-data (OAuth2Passwor
 ldap3                       # синхронная LDAP-библиотека (как во Flask)
 cryptography                # ── Шифрование паролей в БД ──
 asyncpg                     # асинхронный драйвер PostgreSQL (вместо psycopg2)
+slowapi                     # rate limiting для защиты от брутфорса
