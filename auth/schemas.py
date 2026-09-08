@@ -84,6 +84,15 @@ class UserRead(ORMModel):
     auth_method: str
     created_at: datetime
 
+class UserAdminRead(UserRead):
+    """
+    Расширенная схема для админки: включает поля мягкого удаления.
+    Наследует все поля UserRead и добавляет служебные.
+    """
+    is_deleted: bool
+    deleted_at: datetime | None = None
+    deleted_by: int | None = None
+
 
 class UserUpdate(ORMModel):
     """Что принимаем при обновлении (все поля опциональны)."""
