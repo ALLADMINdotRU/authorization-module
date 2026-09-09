@@ -79,11 +79,11 @@ async def update_user(db: AsyncSession, user: User, **kwargs) -> User:
     await db.refresh(user)
     return user
 
-
+# ═══════════════════════════════════════════════════════════════
+# Мягкое удаление пользователя.
+# ═══════════════════════════════════════════════════════════════
 async def delete_user(db: AsyncSession, user: User, deleted_by_user_id: int) -> None:
     """
-    Мягкое удаление пользователя.
-
     Не удаляет строку из БД физически, а помечает:
     - is_deleted = True
     - deleted_at = текущее время
@@ -101,3 +101,28 @@ async def delete_user(db: AsyncSession, user: User, deleted_by_user_id: int) -> 
 
     # Сохраняем изменения
     await db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Восстановить удалённого пользователя.
+# ═══════════════════════════════════════════════════════════════
+async def restore_user(db: AsyncSession, user: User) -> User:
+    """
+    Сбрасывает флаги мягкого удаления:
+    - is_deleted = False
+    - deleted_at = None
+    - deleted_by = None
+    - is_active = True (возвращаем в активное состояние)
+
+    Args:
+        db: сессия БД
+        user: объект User для восстановления
+    """
+    # restore — метод модели User (см. models.py)
+    user.restore()
+
+    # Сохраняем изменения
+    await db.commit()
+    await db.refresh(user)
+
+    return user

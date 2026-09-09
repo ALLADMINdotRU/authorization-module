@@ -62,3 +62,23 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db), admin: U
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     await user_service.delete_user(db, user, admin.id)
     return None  # 204 No Content — нет тела ответа
+
+
+# ═══════════════════════════════════════════════════════════════
+# Восстановить удалённого пользователя.
+# ═══════════════════════════════════════════════════════════════
+@router.post("/{user_id}/restore", response_model=UserAdminRead)
+async def restore_user(user_id: int, db: AsyncSession = Depends(get_db), _admin: User = Depends(admin_required)):
+    """
+    Только для админов. Возвращает восстановленного пользователя.
+    """
+    user = await user_service.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # Защита: нельзя «восстановить» пользователя, который не был удалён.
+    # Иначе restore() сбросил бы is_active и случайно разблокировал активного.
+    if not user.is_deleted:
+        raise HTTPException(status_code=400, detail="Пользователь не был удалён")
+
+    return await user_service.restore_user(db, user)
