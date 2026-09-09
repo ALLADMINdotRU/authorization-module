@@ -5,7 +5,7 @@
 Роуты управления пользователями (только для админов).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
@@ -18,9 +18,13 @@ router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
 
 @router.get("", response_model=list[UserAdminRead])
-async def list_users(db: AsyncSession = Depends(get_db),  _admin: User = Depends(admin_required)):
+async def list_users(
+    include_deleted: bool = Query(True, description="Показывать удалённых пользователей"),
+    db: AsyncSession = Depends(get_db), 
+    _admin: User = Depends(admin_required),
+    ):
     """Список всех пользователей (только админ)."""
-    return await user_service.get_all_users(db)
+    return await user_service.get_all_users(db, include_deleted=include_deleted)
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
