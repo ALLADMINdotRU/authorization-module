@@ -11,11 +11,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import User
 
 
-async def get_all_users(db: AsyncSession) -> list[User]:
-    """Все НЕудалённые пользователи."""
-    result = await db.execute(
-        select(User).where(~User.is_deleted).order_by(User.username)  # выбираем всех не удаленных пользователей
-    )
+async def get_all_users(db: AsyncSession, include_deleted: bool = True) -> list[User]:
+    """
+    Все пользователи.
+
+    Args:
+        db: сессия БД
+        include_deleted: True = показать и удалённых, False = только активные
+    """
+    query = select(User).order_by(User.username)
+
+    if not include_deleted:
+        query = query.where(~User.is_deleted)   # только активные
+
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
