@@ -8,8 +8,9 @@
 Swagger-документация:
     http://localhost:8000/docs
 """
-
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # Импортируем наши модули
 from config import settings
@@ -17,6 +18,7 @@ from database import engine, Base, get_db, AsyncSessionLocal
 from auth import AuthModule                   # ← импорт модуля
 from auth.models import Base as AuthBase      # ← «тетрадь» таблиц модуля
 from auth.seed import seed_defaults           # ← импорт seed
+
 
 # ═══════════════════════════════════════════════════════════════
 # СОЗДАЁМ ПРИЛОЖЕНИЕ
@@ -26,6 +28,33 @@ fastapi_app = FastAPI(
     description="Модуль авторизации (FastAPI + async)",     # описание в Swagger
     version="1.0.0",                                        # версия
 )
+
+
+logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════
+# ГЛОБАЛЬНЫЙ ОБРАБОТЧИК НЕПРЕДВИДЕННЫХ ИСКЛЮЧЕНИЙ
+# ═══════════════════════════════════════════════════════════════
+@fastapi_app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Ловит ВСЕ непредвиденные исключения из любых роутов.
+
+    - traceback всегда пишется в консоль (для разработчика);
+    - на фронтенд отдаём причину ТОЛЬКО в режиме DEBUG.
+    """
+    # logger.exception печатает полный traceback (уровень ERROR)
+    logger.exception("Необработанная ошибка: %s", exc)
+
+    if settings.DEBUG:
+        content = {
+            "detail": str(exc),            # текст ошибки
+            "type": type(exc).__name__,    # имя класса исключения
+        }
+    else:
+        content = {"detail": "Внутренняя ошибка сервера"}
+
+    return JSONResponse(status_code=500, content=content)
 
 
 # ═══════════════════════════════════════════════════════════════

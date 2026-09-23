@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     
     # ── Логирование ──
     LOG_LEVEL: str = "INFO"                          # DEBUG, INFO, WARNING, ERROR
+    # ── Отладка ──
+    DEBUG: bool = True                               # True = отдавать причину ошибки на фронтенд (только для разработки)
 
     # ── Настройки Pydantic ──
     # model_config говорит Pydantic откуда читать переменные
