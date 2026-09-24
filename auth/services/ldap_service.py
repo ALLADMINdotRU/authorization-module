@@ -13,6 +13,7 @@ import asyncio
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User, Role, LDAPServer
@@ -254,7 +255,7 @@ def _parse_username(username_input: str) -> tuple[str, str | None]:
         return parts[1], parts[0]
     return username_input, None
 
-
+# ═══════════════════════════════════════════════════════════════
 # ═══════════════════════════════════════════════════════════════
 # БЛОК: CRUD ДЛЯ LDAP-СЕРВЕРОВ
 # ═══════════════════════════════════════════════════════════════
@@ -277,6 +278,7 @@ async def get_all_servers(db: AsyncSession) -> list[LDAPServer]:
     return list(result.scalars().all())
 
 
+
 async def get_server_by_id(db: AsyncSession, server_id: int) -> LDAPServer | None:
     """
     Найти сервер по ID (или None, если не найден).
@@ -284,6 +286,9 @@ async def get_server_by_id(db: AsyncSession, server_id: int) -> LDAPServer | Non
     return await db.get(LDAPServer, server_id)
 
 
+# ═══════════════════════════════════════════════════════════════
+# Создание LDAP сервера 
+# ═══════════════════════════════════════════════════════════════
 async def create_server(db: AsyncSession, bind_password: str | None = None, **kwargs,) -> LDAPServer:
     """
     Создать новый LDAP-сервер.
@@ -322,12 +327,23 @@ async def create_server(db: AsyncSession, bind_password: str | None = None, **kw
 
     # ── 4. Сохраняем в БД ──
     db.add(server)          # добавляем объект в сессию
-    await db.commit()       # фиксируем (INSERT в БД)
+    try:
+        await db.commit()       # фиксируем (INSERT в БД)
+    except IntegrityError:
+        # защита от «гонки»: имя занято между проверкой и вставкой
+        await db.rollback()
+        logger.error("Дубликат имени при создании LDAP-сервера '%s'", server.name)
+        raise ValueError("Сервер с таким именем уже существует")
+    
     await db.refresh(server)  # перечитать из БД (получить id, created_at)
 
+    logger.info("Создан LDAP-сервер '%s' (id=%s)", server.name, server.id)
     return server
 
 
+# ═══════════════════════════════════════════════════════════════
+# Обновить данные существующего LDAP сервера 
+# ═══════════════════════════════════════════════════════════════
 async def update_server(db: AsyncSession, server: LDAPServer, bind_password: str | None = None, **kwargs,) -> LDAPServer:
     """
     Обновить существующий сервер.
@@ -355,18 +371,30 @@ async def update_server(db: AsyncSession, server: LDAPServer, bind_password: str
         server.set_bind_password(bind_password)
 
     # ── 3. Сохраняем ──
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        logger.error("Дубликат имени при обновлении LDAP-сервера id=%s", server.id)
+        raise ValueError("Сервер с таким именем уже существует")
+
     await db.refresh(server)
 
+    logger.info("Обновлён LDAP-сервер '%s' (id=%s)", server.name, server.id)
     return server
 
 
+# ═══════════════════════════════════════════════════════════════
+# Удалить LDAP сервер
+# ═══════════════════════════════════════════════════════════════
 async def delete_server(db: AsyncSession, server: LDAPServer) -> None:
     """
     Удалить сервер из БД.
     """
     await db.delete(server)
     await db.commit()
+
+    logger.warning("Удалён LDAP-сервер '%s' (id=%s)", server.name, server.id)
 
 
 # ═══════════════════════════════════════════════════════════════

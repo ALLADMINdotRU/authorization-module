@@ -8,7 +8,7 @@
 Swagger-документация:
     http://localhost:8000/docs
 """
-import logging
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -18,6 +18,23 @@ from database import engine, Base, get_db, AsyncSessionLocal
 from auth import AuthModule                   # ← импорт модуля
 from auth.models import Base as AuthBase      # ← «тетрадь» таблиц модуля
 from auth.seed import seed_defaults           # ← импорт seed
+
+
+import logging
+from logging.handlers import RotatingFileHandler
+# ═══════════════════════════════════════════════════════════════
+# ЗАДАЕМ ПАРАМЕТРЫ ОБЩЕГО ЛОГА
+# ═══════════════════════════════════════════════════════════════
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    handlers=[
+        logging.StreamHandler(),                                  # консоль
+        RotatingFileHandler("logs/app.log", maxBytes=5_000_000,   # общий файл
+                            backupCount=5, encoding="utf-8"),
+    ],
+)
+
 
 
 # ═══════════════════════════════════════════════════════════════

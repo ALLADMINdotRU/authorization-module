@@ -11,6 +11,7 @@ JWT-аутентификация (аналог Flask-Login, но на токен
 3. Проверка токена и получение пользователя (get_current_user)
 4. Проверка роли admin (admin_required)
 """
+import logging
 
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,7 @@ from .deps import get_db
 from .models import User
 from .schemas import TokenData
 
+logger = logging.getLogger(__name__)   # логгер "auth.security"
 
 
 
@@ -130,7 +132,8 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db),
         token_data = TokenData(username=username)
 
     except JWTError:
-        # Подпись неверна или токен просрочен
+        # Подпись неверна или токен просрочен — подозрительно, логируем
+        logger.warning("Неверный или просроченный JWT-токен")
         raise credentials_exception
 
     # Ищем пользователя в БД
@@ -138,6 +141,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db),
     user = result.scalar_one_or_none()
 
     if user is None:
+        logger.warning("Токен валиден, но пользователь '%s' не найден в БД", token_data.username)
         raise credentials_exception
 
     return user
@@ -151,6 +155,7 @@ async def get_current_active_user(
 ) -> User:
     """Проверяет, что пользователь активен (не заблокирован)."""
     if not current_user.is_active:
+        logger.warning("Пользователь '%s' неактивен", current_user.username)
         raise HTTPException(status_code=400, detail="Пользователь неактивен")
     return current_user
 
@@ -163,6 +168,7 @@ async def admin_required(
 ) -> User:
     """Пропускает только администраторов."""
     if not current_user.is_admin():
+        logger.warning("Пользователь '%s' без прав admin попытался получить доступ", current_user.username,)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав (требуется роль admin)",
