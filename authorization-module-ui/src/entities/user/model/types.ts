@@ -12,6 +12,9 @@ export type User = {
   is_active: boolean
   auth_method: string
   created_at: string
+  is_deleted: boolean
+  deleted_at: string | null
+  deleted_by: number | null
 }
 
 export type UserCreate = {
