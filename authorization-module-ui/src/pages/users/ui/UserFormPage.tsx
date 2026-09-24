@@ -58,7 +58,8 @@ const defaultValues: UserFormValues = {
   is_active: true,
 }
 
-const toNullable = (value: string) => (value.trim() ? value.trim() : null)
+const toNullable = (value?: string | null) =>
+  value?.trim() ? value.trim() : null
 
 export const UserFormPage = () => {
   const navigate = useNavigate()
@@ -107,6 +108,7 @@ export const UserFormPage = () => {
       if (isEdit && userId !== undefined) {
         const data: UserUpdate = {
           username: values.username.trim(),
+          password: toNullable(values.password),
           email: toNullable(values.email),
           full_name: toNullable(values.full_name),
           mobile_phone: toNullable(values.mobile_phone),
@@ -148,6 +150,7 @@ export const UserFormPage = () => {
 
   const title = isEdit ? "Редактирование пользователя" : "Создание пользователя"
   const isSubmitting = isCreating || isUpdating
+  const isLdap = isEdit && user?.auth_method !== "local"
 
   if (isEdit && isLoading) {
     return (
@@ -177,9 +180,19 @@ export const UserFormPage = () => {
           helperText={errors.username?.message}
           required
         />
-        {!isEdit && (
-          <TextField label="Пароль" type="password" {...register("password")} />
-        )}
+        <TextField
+          label="Пароль"
+          type="password"
+          {...register("password")}
+          disabled={isLdap}
+          helperText={
+            isLdap
+              ? "Пароль берётся из AD"
+              : isEdit
+                ? "Оставьте пустым, чтобы не менять пароль"
+                : undefined
+          }
+        />
         <TextField label="ФИО" {...register("full_name")} />
         <TextField
           label="Email"
