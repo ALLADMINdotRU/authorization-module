@@ -10,14 +10,25 @@
     "format": "prettier --write .",
     "lint:fix": "eslint --fix .",
     "lint": "eslint .",
+    "prepare": "cd .. && husky authorization-module-ui/.husky",
     "preview": "vite preview",
     "start": "vite",
     "test": "vitest --run",
     "type-check": "tsc -b --noEmit"
   },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,html,css,scss,less,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.9.1",
     "@mui/icons-material": "^9.4.0",
     "@mui/material": "^9.4.0",
     "@reduxjs/toolkit": "^2.6.1",

@@ -16,6 +16,12 @@ export default defineConfig({
 
   server: {
     open: true,
+    proxy: {
+      "/auth": {
+        target: "http://81.28.218.66:8000",
+        changeOrigin: true,
+      },
+    },
   },
 
   test: {
