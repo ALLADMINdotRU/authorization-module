@@ -5,6 +5,7 @@ import {
   Card,
   CardActions,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -13,6 +14,7 @@ import {
   DialogContentText,
   DialogTitle,
   Divider,
+  FormControlLabel,
   Paper,
   Stack,
   Table,
@@ -28,6 +30,7 @@ import { Link } from "react-router-dom"
 import {
   useDeleteUserMutation,
   useListUsersQuery,
+  useRestoreUserMutation,
 } from "../../../entities/user"
 import type { User } from "../../../entities/user"
 import { PageHeader } from "../../../shared/ui/page-header"
@@ -35,9 +38,16 @@ import { PageHeader } from "../../../shared/ui/page-header"
 type UserActionsProps = {
   user: User
   onDelete: (user: User) => void
+  onRestore: (user: User) => void
+  isRestoring?: boolean
 }
 
-const UserActions = ({ user, onDelete }: UserActionsProps) => (
+const UserActions = ({
+  user,
+  onDelete,
+  onRestore,
+  isRestoring,
+}: UserActionsProps) => (
   <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
     <Button
       component={Link}
@@ -47,24 +57,41 @@ const UserActions = ({ user, onDelete }: UserActionsProps) => (
     >
       Редактировать
     </Button>
-    <Button
-      size="small"
-      variant="outlined"
-      color="error"
-      onClick={() => {
-        onDelete(user)
-      }}
-    >
-      Удалить
-    </Button>
+    {user.is_deleted ? (
+      <Button
+        size="small"
+        variant="outlined"
+        color="success"
+        disabled={isRestoring}
+        onClick={() => {
+          onRestore(user)
+        }}
+      >
+        Восстановить
+      </Button>
+    ) : (
+      <Button
+        size="small"
+        variant="outlined"
+        color="error"
+        onClick={() => {
+          onDelete(user)
+        }}
+      >
+        Удалить
+      </Button>
+    )}
   </Box>
 )
 
 export const UsersPage = () => {
-  const { data, error, isLoading } = useListUsersQuery(undefined)
+  const [showDeleted, setShowDeleted] = useState(false)
+  const { data, error, isLoading } = useListUsersQuery(showDeleted)
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation()
+  const [restoreUser, { isLoading: isRestoring }] = useRestoreUserMutation()
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [restoreError, setRestoreError] = useState<string | null>(null)
   const users = data ?? []
   const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"))
 
@@ -91,16 +118,47 @@ export const UsersPage = () => {
     }
   }
 
+  const handleRestore = async (user: User) => {
+    setRestoreError(null)
+    try {
+      await restoreUser(user.id).unwrap()
+    } catch {
+      setRestoreError("Не удалось восстановить пользователя")
+    }
+  }
+
   return (
     <Box sx={{ p: 2 }}>
       <PageHeader title="Пользователи" />
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between" }}>
+      <Box
+        sx={{
+          mb: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 2,
+          flexWrap: "wrap",
+        }}
+      >
         <Button component={Link} to="/main" variant="outlined">
           Назад
         </Button>
-        <Button component={Link} to="/users/create" variant="contained">
-          Создать
-        </Button>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showDeleted}
+                onChange={event => {
+                  setShowDeleted(event.target.checked)
+                }}
+              />
+            }
+            label="Показывать удалённых пользователей"
+          />
+          <Button component={Link} to="/users/create" variant="contained">
+            Создать
+          </Button>
+        </Box>
       </Box>
 
       {isLoading && (
@@ -112,6 +170,12 @@ export const UsersPage = () => {
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
           Не удалось загрузить пользователей
+        </Typography>
+      )}
+
+      {restoreError && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {restoreError}
         </Typography>
       )}
 
@@ -130,12 +194,15 @@ export const UsersPage = () => {
                 <Typography variant="body2" color="text.secondary">
                   {user.username}
                 </Typography>
-                <Box sx={{ mt: 1 }}>
+                <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
                   <Chip
                     label={user.is_active ? "Активен" : "Неактивен"}
                     color={user.is_active ? "success" : "default"}
                     size="small"
                   />
+                  {user.is_deleted && (
+                    <Chip label="Удалён" color="error" size="small" />
+                  )}
                 </Box>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="body2">{user.email ?? "—"}</Typography>
@@ -149,7 +216,14 @@ export const UsersPage = () => {
                 </Typography>
               </CardContent>
               <CardActions>
-                <UserActions user={user} onDelete={openDeleteDialog} />
+                <UserActions
+                  user={user}
+                  onDelete={openDeleteDialog}
+                  onRestore={user => {
+                    void handleRestore(user)
+                  }}
+                  isRestoring={isRestoring}
+                />
               </CardActions>
             </Card>
           ))}
@@ -182,9 +256,18 @@ export const UsersPage = () => {
                   <TableCell>{user.company ?? "—"}</TableCell>
                   <TableCell>{user.department ?? "—"}</TableCell>
                   <TableCell>{user.position ?? "—"}</TableCell>
-                  <TableCell>{user.is_active ? "Да" : "Нет"}</TableCell>
                   <TableCell>
-                    <UserActions user={user} onDelete={openDeleteDialog} />
+                    {user.is_deleted ? "Удалён" : user.is_active ? "Да" : "Нет"}
+                  </TableCell>
+                  <TableCell>
+                    <UserActions
+                      user={user}
+                      onDelete={openDeleteDialog}
+                      onRestore={user => {
+                        void handleRestore(user)
+                      }}
+                      isRestoring={isRestoring}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

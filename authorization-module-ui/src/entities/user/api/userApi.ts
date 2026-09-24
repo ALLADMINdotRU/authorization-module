@@ -3,12 +3,19 @@ import type { User, UserCreate, UserUpdate } from "../model/types"
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: build => ({
-    listUsers: build.query<User[], undefined>({
-      query: () => ({ url: "/auth/admin/rest/users", method: "GET" }),
+    listUsers: build.query<User[], boolean>({
+      query: includeDeleted => ({
+        url: "/auth/admin/rest/users",
+        method: "GET",
+        params: { include_deleted: includeDeleted },
+      }),
       providesTags: ["Users"],
     }),
     getUser: build.query<User, number>({
-      query: id => ({ url: `/auth/admin/rest/users/${String(id)}`, method: "GET" }),
+      query: id => ({
+        url: `/auth/admin/rest/users/${String(id)}`,
+        method: "GET",
+      }),
     }),
     createUser: build.mutation<User, UserCreate>({
       query: body => ({ url: "/auth/admin/rest/users", method: "POST", body }),
@@ -29,6 +36,13 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["Users"],
     }),
+    restoreUser: build.mutation<User, number>({
+      query: id => ({
+        url: `/auth/admin/rest/users/${String(id)}/restore`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Users"],
+    }),
   }),
 })
 
@@ -38,4 +52,5 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useRestoreUserMutation,
 } = userApi
