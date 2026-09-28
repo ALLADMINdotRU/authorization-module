@@ -4,12 +4,16 @@
 """
 Сервис управления пользователями (CRUD).
 """
+import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError          # для перехвата дубликатов логов
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
+from ..exceptions import UserAlreadyExists
 
+logger = logging.getLogger(__name__)               # логгер этого модуля ("auth.services.user_service")
 
 async def get_all_users(db: AsyncSession, include_deleted: bool = True) -> list[User]:
     """
@@ -49,7 +53,7 @@ async def create_user(db: AsyncSession, username: str, password: str | None = No
     # Проверяем уникальность
     existing = await get_user_by_username(db, username)
     if existing:
-        raise ValueError(f"Пользователь {username} уже существует")
+        raise UserAlreadyExists(username)
 
     # Создаём объект (без пароля — передаётся отдельно)
     user = User(username=username, **kwargs)
@@ -59,10 +63,15 @@ async def create_user(db: AsyncSession, username: str, password: str | None = No
         user.set_password(password)
 
     db.add(user)
-    await db.commit()
-    # refresh — перечитать объект из БД (получить id, created_at)
-    await db.refresh(user)
+    try:
+        await db.commit()
+    except IntegrityError:          # Дубликат email (или гонка с username) → откатываем и отдаём 400
+        await db.rollback()
+        logger.error("Дубликат email/username при создании пользователя '%s'", username)
+        raise UserAlreadyExists(username)
 
+    await db.refresh(user)      # refresh — перечитать объект из БД (получить id, created_at)
+    logger.info("Создан пользователь '%s' (id=%s)", username, user.id)
     return user
 
 
@@ -75,8 +84,16 @@ async def update_user(db: AsyncSession, user: User, **kwargs) -> User:
                 user.set_password(value)
             else:
                 setattr(user, field, value)
-    await db.commit()
+
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        logger.error("Дубликат email/username при обновлении пользователя id=%s", user.id)
+        raise UserAlreadyExists(user.username)
+
     await db.refresh(user)
+    logger.info("Обновлён пользователь '%s' (id=%s)", user.username, user.id)
     return user
 
 # ═══════════════════════════════════════════════════════════════
@@ -102,6 +119,11 @@ async def delete_user(db: AsyncSession, user: User, deleted_by_user_id: int) -> 
     # Сохраняем изменения
     await db.commit()
 
+    # WARNING, а не INFO — удаление это «важное» событие для аудита
+    logger.warning(
+        "Пользователь '%s' (id=%s) удалён админом id=%s",
+        user.username, user.id, deleted_by_user_id,
+    )
 
 # ═══════════════════════════════════════════════════════════════
 # Восстановить удалённого пользователя.
@@ -125,4 +147,5 @@ async def restore_user(db: AsyncSession, user: User) -> User:
     await db.commit()
     await db.refresh(user)
 
+    logger.info("Пользователь '%s' (id=%s) восстановлен", user.username, user.id)
     return user

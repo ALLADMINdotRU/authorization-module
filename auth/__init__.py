@@ -24,6 +24,10 @@ from . import models  #
 # Rate limiting (настраивается в init_app из settings)
 from .middleware.rate_limit import setup_rate_limiting
 
+from .logging_config import setup_logging 
+from .exceptions import register_error_handlers                                 # Кастомные бизнес-ошибки модуля (AuthError + подклассы)
+
+
 class AuthModule:
     """
     Класс-обёртка модуля авторизации.
@@ -59,6 +63,9 @@ class AuthModule:
         self.app = app
         self.settings = settings
 
+        setup_logging(level=settings.LOG_LEVEL)         # включаем логирование
+        register_error_handlers(app)                    # подключаем обработку бизнес-ошибок
+        
         # Кладём корневую get_db в «мост», чтобы роутеры могли её взять
         deps.set_get_db(get_db)
 

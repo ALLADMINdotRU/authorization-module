@@ -12,7 +12,7 @@
 - DELETE /auth/admin/roles/{id}   — удалить роль
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
@@ -20,6 +20,7 @@ from ..models import User, Role
 from ..schemas import RoleCreate, RoleRead, RoleUpdate
 from ..security import admin_required
 from ..services import role_service
+from ..exceptions import RoleNotFound
 
 # APIRouter — набор маршрутов (аналог Flask Blueprint)
 # prefix="/admin/roles" — все URL начинаются с /auth/admin/roles
@@ -47,10 +48,7 @@ async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), _adm
     """
     Создать новую роль.
     """
-    try:
-        return await role_service.create_role(db, **data.model_dump())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await role_service.create_role(db, **data.model_dump())
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -67,7 +65,7 @@ async def get_role(role_id: int, db: AsyncSession = Depends(get_db), _admin: Use
     """
     role = await role_service.get_role_by_id(db, role_id)
     if not role:
-        raise HTTPException(status_code=404, detail="Роль не найдена")
+        raise RoleNotFound(role_id)
     return role
 
 
@@ -87,7 +85,7 @@ async def update_role(role_id: int, data: RoleUpdate, db: AsyncSession = Depends
     """
     role = await role_service.get_role_by_id(db, role_id)
     if not role:
-        raise HTTPException(status_code=404, detail="Роль не найдена")
+        raise RoleNotFound(role_id)
 
     return await role_service.update_role(
         db, role, **data.model_dump(exclude_unset=True)
@@ -107,7 +105,7 @@ async def delete_role(role_id: int, db: AsyncSession = Depends(get_db), _admin: 
     """
     role = await role_service.get_role_by_id(db, role_id)
     if not role:
-        raise HTTPException(status_code=404, detail="Роль не найдена")
+        raise RoleNotFound(role_id)
 
     await role_service.delete_role(db, role)
     return None   # 204 No Content — тела нет
