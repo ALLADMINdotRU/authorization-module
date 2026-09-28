@@ -5,7 +5,7 @@
 Роуты аутентификации: вход (cookie), , выход, профиль.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, status, Response, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from ..schemas import Token, UserRead
 from .. import security 
 from ..services import auth_service
 from ..middleware.rate_limit import limiter, get_login_limit
+from ..exceptions import InvalidCredentials
 
 router = APIRouter(tags=["auth"])
 
@@ -40,10 +41,7 @@ async def login(
     user = await auth_service.authenticate(db, form_data.username, form_data.password)
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверный логин или пароль",
-        )
+        raise InvalidCredentials()
 
     # Создаём токен (кладём логин в поле "sub")
     access_token = security.create_access_token(data={"sub": user.username})

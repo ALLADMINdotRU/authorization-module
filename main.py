@@ -21,10 +21,12 @@ from auth.seed import seed_defaults           # ← импорт seed
 
 
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 # ═══════════════════════════════════════════════════════════════
 # ЗАДАЕМ ПАРАМЕТРЫ ОБЩЕГО ЛОГА
 # ═══════════════════════════════════════════════════════════════
+os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",

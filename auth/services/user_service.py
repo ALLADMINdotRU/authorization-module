@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError          # для перехвата �
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
+from ..exceptions import UserAlreadyExists
 
 logger = logging.getLogger(__name__)               # логгер этого модуля ("auth.services.user_service")
 
@@ -52,7 +53,7 @@ async def create_user(db: AsyncSession, username: str, password: str | None = No
     # Проверяем уникальность
     existing = await get_user_by_username(db, username)
     if existing:
-        raise ValueError(f"Пользователь {username} уже существует")
+        raise UserAlreadyExists(username)
 
     # Создаём объект (без пароля — передаётся отдельно)
     user = User(username=username, **kwargs)
@@ -67,7 +68,7 @@ async def create_user(db: AsyncSession, username: str, password: str | None = No
     except IntegrityError:          # Дубликат email (или гонка с username) → откатываем и отдаём 400
         await db.rollback()
         logger.error("Дубликат email/username при создании пользователя '%s'", username)
-        raise ValueError("Пользователь с таким email или username уже существует")
+        raise UserAlreadyExists(username)
 
     await db.refresh(user)      # refresh — перечитать объект из БД (получить id, created_at)
     logger.info("Создан пользователь '%s' (id=%s)", username, user.id)
@@ -89,7 +90,7 @@ async def update_user(db: AsyncSession, user: User, **kwargs) -> User:
     except IntegrityError:
         await db.rollback()
         logger.error("Дубликат email/username при обновлении пользователя id=%s", user.id)
-        raise ValueError("Такой email или username уже занят")
+        raise UserAlreadyExists(user.username)
 
     await db.refresh(user)
     logger.info("Обновлён пользователь '%s' (id=%s)", user.username, user.id)

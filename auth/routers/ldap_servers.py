@@ -10,7 +10,7 @@
 3. Пароль при сохранении шифруется (Fernet)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
@@ -18,6 +18,8 @@ from ..models import User, LDAPServer
 from ..schemas import LDAPServerCreate, LDAPServerRead, LDAPServerUpdate
 from ..security import admin_required
 from ..services import ldap_service
+from ..exceptions import LDAPServerNotFound
+
 
 router = APIRouter(prefix="/admin/rest/ldap-servers", tags=["admin-ldap"])
 
@@ -44,10 +46,7 @@ async def create_server(data: LDAPServerCreate, db: AsyncSession = Depends(get_d
     Вход: все поля из LDAPServerCreate (включая bind_password).
     Выход: LDAPServerRead (БЕЗ пароля).
     """
-    try:
-        return await ldap_service.create_server(db, **data.model_dump())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await ldap_service.create_server(db, **data.model_dump())
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -58,7 +57,7 @@ async def get_server(server_id: int, db: AsyncSession = Depends(get_db), _admin:
     """Получить сервер по ID."""
     server = await ldap_service.get_server_by_id(db, server_id)
     if not server:
-        raise HTTPException(status_code=404, detail="Сервер не найден")
+        raise LDAPServerNotFound(server_id)
     return server
 
 
@@ -70,7 +69,7 @@ async def update_server(server_id: int, data: LDAPServerUpdate, db: AsyncSession
     """Обновить сервер (частично, только переданные поля)."""
     server = await ldap_service.get_server_by_id(db, server_id)
     if not server:
-        raise HTTPException(status_code=404, detail="Сервер не найден")
+        raise LDAPServerNotFound(server_id)
 
     # exclude_unset=True — берём только те поля, что клиент реально передал
     return await ldap_service.update_server(db, server, **data.model_dump(exclude_unset=True))
@@ -84,7 +83,7 @@ async def delete_server(server_id: int, db: AsyncSession = Depends(get_db),  _ad
     """Удалить сервер."""
     server = await ldap_service.get_server_by_id(db, server_id)
     if not server:
-        raise HTTPException(status_code=404, detail="Сервер не найден")
+        raise LDAPServerNotFound(server_id)
     await ldap_service.delete_server(db, server)
     return None   # 204 No Content — тело ответа пустое
 
@@ -101,7 +100,7 @@ async def test_server(server_id: int, db: AsyncSession = Depends(get_db), _admin
     """
     server = await ldap_service.get_server_by_id(db, server_id)
     if not server:
-        raise HTTPException(status_code=404, detail="Сервер не найден")
+        raise LDAPServerNotFound(server_id)
 
     success, message = await ldap_service.test_connection(db, server)
     return {"success": success, "message": message}

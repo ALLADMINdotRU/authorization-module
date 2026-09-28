@@ -17,6 +17,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User, Role, LDAPServer
+from ..exceptions import LDAPServerAlreadyExists
+
 from ..ldap import (
     LDAPConfig,
     LDAPConnection,
@@ -314,7 +316,7 @@ async def create_server(db: AsyncSession, bind_password: str | None = None, **kw
             select(LDAPServer).where(LDAPServer.name == kwargs["name"])
         )
         if result.scalar_one_or_none():
-            raise ValueError(f"Сервер '{kwargs['name']}' уже существует")
+            raise LDAPServerAlreadyExists(kwargs["name"])
 
     # ── 2. Создаём объект (остальные поля через **kwargs) ──
     # LDAPServer(**kwargs) = LDAPServer(name="DC01", host="...", port=389, ...)
@@ -333,7 +335,7 @@ async def create_server(db: AsyncSession, bind_password: str | None = None, **kw
         # защита от «гонки»: имя занято между проверкой и вставкой
         await db.rollback()
         logger.error("Дубликат имени при создании LDAP-сервера '%s'", server.name)
-        raise ValueError("Сервер с таким именем уже существует")
+        raise LDAPServerAlreadyExists(server.name)
     
     await db.refresh(server)  # перечитать из БД (получить id, created_at)
 
@@ -376,7 +378,7 @@ async def update_server(db: AsyncSession, server: LDAPServer, bind_password: str
     except IntegrityError:
         await db.rollback()
         logger.error("Дубликат имени при обновлении LDAP-сервера id=%s", server.id)
-        raise ValueError("Сервер с таким именем уже существует")
+        raise LDAPServerAlreadyExists(server.name)
 
     await db.refresh(server)
 

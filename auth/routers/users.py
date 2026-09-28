@@ -5,7 +5,7 @@
 Роуты управления пользователями (только для админов).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
@@ -13,6 +13,7 @@ from ..models import User
 from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate
 from ..security import admin_required
 from ..services import user_service
+from ..exceptions import UserNotFound, UserNotDeleted
 
 router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
@@ -30,10 +31,7 @@ async def list_users(
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def create_user(data: UserCreate, db: AsyncSession = Depends(get_db),  _admin: User = Depends(admin_required)):
     """Создать пользователя."""
-    try:
-        return await user_service.create_user(db, **data.model_dump())
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await user_service.create_user(db, **data.model_dump())
 
 
 @router.get("/{user_id}", response_model=UserAdminRead)
@@ -41,7 +39,7 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db), _admin: Use
     """Получить пользователя по ID."""
     user = await user_service.get_user_by_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise UserNotFound(user_id)
     return user
 
 
@@ -50,7 +48,7 @@ async def update_user(user_id: int, data: UserUpdate, db: AsyncSession = Depends
     """Обновить пользователя (частично)."""
     user = await user_service.get_user_by_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise UserNotFound(user_id)
     return await user_service.update_user(db, user, **data.model_dump(exclude_unset=True))
 
 
@@ -59,7 +57,7 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db), admin: U
     """Мягкое удаление пользователя."""
     user = await user_service.get_user_by_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise UserNotFound(user_id)
     await user_service.delete_user(db, user, admin.id)
     return None  # 204 No Content — нет тела ответа
 
@@ -74,11 +72,11 @@ async def restore_user(user_id: int, db: AsyncSession = Depends(get_db), _admin:
     """
     user = await user_service.get_user_by_id(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise UserNotFound(user_id)
 
     # Защита: нельзя «восстановить» пользователя, который не был удалён.
     # Иначе restore() сбросил бы is_active и случайно разблокировал активного.
     if not user.is_deleted:
-        raise HTTPException(status_code=400, detail="Пользователь не был удалён")
+        raise UserNotFound(user_id)
 
     return await user_service.restore_user(db, user)

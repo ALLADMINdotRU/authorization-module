@@ -15,7 +15,7 @@ import logging
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +24,8 @@ from fastapi import Request
 from .deps import get_db
 from .models import User
 from .schemas import TokenData
+
+from .exceptions import Unauthorized, InactiveUser, Forbidden
 
 logger = logging.getLogger(__name__)   # логгер "auth.security"
 
@@ -110,10 +112,8 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db),
     5. Вернуть его (или 401 если что-то не так)
     """
     # Ошибка «неавторизован» + заголовок WWW-Authenticate (стандарт OAuth2)
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Не удалось проверить учетные данные",
-    )
+    credentials_exception = Unauthorized()
+
 
     # Достаём токен из cookie
     token = request.cookies.get(COOKIE_NAME)
@@ -156,7 +156,7 @@ async def get_current_active_user(
     """Проверяет, что пользователь активен (не заблокирован)."""
     if not current_user.is_active:
         logger.warning("Пользователь '%s' неактивен", current_user.username)
-        raise HTTPException(status_code=400, detail="Пользователь неактивен")
+        raise InactiveUser(current_user.username)
     return current_user
 
 
@@ -169,8 +169,5 @@ async def admin_required(
     """Пропускает только администраторов."""
     if not current_user.is_admin():
         logger.warning("Пользователь '%s' без прав admin попытался получить доступ", current_user.username,)
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав (требуется роль admin)",
-        )
+        raise Forbidden()
     return current_user
