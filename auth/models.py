@@ -17,6 +17,7 @@ import bcrypt
 # helper для чистоты кода
 # ═══════════════════════════════════════════════════════════════
 def utc_now():
+    """Текущее время в UTC (aware, с часовым поясом)."""
     return datetime.now(timezone.utc)
 
 # ═══════════════════════════════════════════════════════════════
@@ -119,12 +120,12 @@ class User(Base):
 
     # ── Статус ──
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     auth_method: Mapped[str] = mapped_column(String(20), default="local")  # 'local' | 'ldap'
 
     # ── Мягкое удаление ──
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
 
     # ── Связь many-to-many с Role ──
@@ -223,10 +224,8 @@ class LDAPServer(Base):
     auto_login_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # ── Даты ──
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # ── Свойство: полный URL ──
     @property
