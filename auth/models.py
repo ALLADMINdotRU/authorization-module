@@ -17,6 +17,7 @@ import bcrypt
 # helper для чистоты кода
 # ═══════════════════════════════════════════════════════════════
 def utc_now():
+    """Текущее время в UTC (aware, с часовым поясом)."""
     return datetime.now(timezone.utc)
 
 # ═══════════════════════════════════════════════════════════════
@@ -119,12 +120,12 @@ class User(Base):
 
     # ── Статус ──
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     auth_method: Mapped[str] = mapped_column(String(20), default="local")  # 'local' | 'ldap'
 
     # ── Мягкое удаление ──
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deleted_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
 
     # ── Связь many-to-many с Role ──
@@ -223,10 +224,8 @@ class LDAPServer(Base):
     auto_login_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # ── Даты ──
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=utc_now, onupdate=utc_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # ── Свойство: полный URL ──
     @property
@@ -276,3 +275,31 @@ class LDAPServer(Base):
 
     def __repr__(self):
         return f"<LDAPServer {self.name} ({self.host})>"
+
+
+# ═══════════════════════════════════════════════════════════════
+# МОДЕЛЬ: RefreshToken
+# ═══════════════════════════════════════════════════════════════
+class RefreshToken(Base):
+    """
+    Refresh-токен для продления сессии.
+
+    Хранится в БД, чтобы можно было:
+    - отозвать (revoke) токен досрочно;
+    - отслеживать активные сессии;
+    - сделать «выход со всех устройств».
+
+    ВАЖНО: в БД хранится НЕ сам токен, а его ХЭШ (token_hash).
+    Сам токен — случайная строка, которую знает только клиент.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)    
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)           # Какому пользователю принадлежит токен
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)                # Хэш токена (sha256 → 64 символа). Уникальный — один токен = одна запись.
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)           # Когда токен истекает
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)          # Когда создан
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)                                   # Отозван ли токен (при logout / смене пароля / блокировке)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))                    # Когда отозван (если отозван)
+    user: Mapped["User"] = relationship("User")                                                     # Связь с пользователем (не обязательна для логики, но удобно)

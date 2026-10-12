@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     # ── JWT-токены ──
     JWT_ALGORITHM: str = "HS256"                     # алгоритм подписи (HS256 = HMAC+SHA256)
     JWT_EXPIRE_MINUTES: int = 60                     # время жизни токена в минутах
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7               # время жизни REFRESH-токена (дней)
 
     COOKIE_SECURE: bool =False                       # http (False) vs https (True)
+
 
     # ── Rate Limiting (защита от брутфорса) ──
     RATE_LIMIT_ENABLED: bool = True                  # вкл/выкл всей защиты
