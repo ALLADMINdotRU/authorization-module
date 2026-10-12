@@ -74,6 +74,7 @@ class AuthModule:
             secret_key=settings.SECRET_KEY,
             algorithm=settings.JWT_ALGORITHM,
             expire_minutes=settings.JWT_EXPIRE_MINUTES,
+            refresh_expire_days=settings.REFRESH_TOKEN_EXPIRE_DAYS,
         )
 
         # Настраиваем rate limiting (защита от брутфорса)

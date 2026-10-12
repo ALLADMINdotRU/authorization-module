@@ -42,21 +42,32 @@ ALGORITHM = None
 ACCESS_TOKEN_EXPIRE_MINUTES = None
 COOKIE_NAME = "access_token"
 COOKIE_SECURE = False 
+REFRESH_COOKIE_NAME = "refresh_token"     # имя cookie для refresh-токена
+REFRESH_TOKEN_EXPIRE_DAYS = None          # заполнится в configure_jwt
 
-def configure_jwt(secret_key: str, algorithm: str, expire_minutes: int, cookie_name="access_token", cookie_secure=False):
+def configure_jwt(
+        secret_key: str, 
+        algorithm: str, 
+        expire_minutes: int, 
+        cookie_name="access_token", 
+        cookie_secure=False,
+        refresh_cookie_name="refresh_token",
+        refresh_expire_days=7,
+        ):
     """
     Вызывается корнем в init_app(). Заполняет настройки JWT.
 
     Зачем так: модуль переносимый, он не знает SECRET_KEY чужого
     проекта. Корень передаёт их сюда.
     """
-    global SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_NAME, COOKIE_SECURE
+    global SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_NAME, COOKIE_SECURE, REFRESH_COOKIE_NAME, REFRESH_TOKEN_EXPIRE_DAYS
     SECRET_KEY = secret_key
     ALGORITHM = algorithm
     ACCESS_TOKEN_EXPIRE_MINUTES = expire_minutes
     COOKIE_NAME = cookie_name
     COOKIE_SECURE = cookie_secure
-
+    REFRESH_COOKIE_NAME = refresh_cookie_name
+    REFRESH_TOKEN_EXPIRE_DAYS = refresh_expire_days
 
 
 # ═══════════════════════════════════════════════════════════════
