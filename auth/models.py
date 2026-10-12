@@ -275,3 +275,31 @@ class LDAPServer(Base):
 
     def __repr__(self):
         return f"<LDAPServer {self.name} ({self.host})>"
+
+
+# ═══════════════════════════════════════════════════════════════
+# МОДЕЛЬ: RefreshToken
+# ═══════════════════════════════════════════════════════════════
+class RefreshToken(Base):
+    """
+    Refresh-токен для продления сессии.
+
+    Хранится в БД, чтобы можно было:
+    - отозвать (revoke) токен досрочно;
+    - отслеживать активные сессии;
+    - сделать «выход со всех устройств».
+
+    ВАЖНО: в БД хранится НЕ сам токен, а его ХЭШ (token_hash).
+    Сам токен — случайная строка, которую знает только клиент.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)    
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)           # Какому пользователю принадлежит токен
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)                # Хэш токена (sha256 → 64 символа). Уникальный — один токен = одна запись.
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)           # Когда токен истекает
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)          # Когда создан
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)                                   # Отозван ли токен (при logout / смене пароля / блокировке)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))                    # Когда отозван (если отозван)
+    user: Mapped["User"] = relationship("User")                                                     # Связь с пользователем (не обязательна для логики, но удобно)
