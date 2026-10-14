@@ -10,12 +10,12 @@
 3. Пароль при сохранении шифруется (Fernet)
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User, LDAPServer
-from ..schemas import LDAPServerCreate, LDAPServerRead, LDAPServerUpdate
+from ..schemas import LDAPServerCreate, LDAPServerRead, LDAPServerUpdate, Page
 from ..security import admin_required
 from ..services import ldap_service
 from ..exceptions import LDAPServerNotFound
@@ -25,14 +25,21 @@ router = APIRouter(prefix="/admin/rest/ldap-servers", tags=["admin-ldap"])
 
 
 # ═══════════════════════════════════════════════════════════════
-# СПИСОК ВСЕХ СЕРВЕРОВ
+# СПИСОК ВСЕХ LDAP-СЕРВЕРОВ (с пагинацией)
 # ═══════════════════════════════════════════════════════════════
-@router.get("", response_model=list[LDAPServerRead])
-async def list_servers(db: AsyncSession = Depends(get_db), _admin: User = Depends(admin_required)):       # только админ
-    """Список всех LDAP-серверов (без паролей)."""
-    # response_model=LDAPServerRead — пароль bind_password не попадёт в ответ
-    servers = await ldap_service.get_all_servers(db)
-    return servers
+@router.get("", response_model=Page[LDAPServerRead])
+async def list_servers(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы (с 1)"),
+    limit: int = Query(20, ge=1, le=100, description="Размер страницы (1–100)"),
+    _admin: User = Depends(admin_required)
+    ):       # только админ
+    """Список LDAP-серверов с пагинацией (без паролей)."""
+    items, total = await ldap_service.get_all_servers(db, page=page, limit=limit)
+
+    pages = (total + limit - 1) // limit
+
+    return Page(items=items, total=total, page=page, limit=limit, pages=pages)
 
 
 # ═══════════════════════════════════════════════════════════════

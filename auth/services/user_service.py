@@ -6,30 +6,56 @@
 """
 import logging
 
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError          # для перехвата дубликатов логов
+from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError                                       # для перехвата дубликатов логов
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
 from ..exceptions import UserAlreadyExists
 
-logger = logging.getLogger(__name__)               # логгер этого модуля ("auth.services.user_service")
+logger = logging.getLogger(__name__)                                            # логгер этого модуля ("auth.services.user_service")
 
-async def get_all_users(db: AsyncSession, include_deleted: bool = True) -> list[User]:
+async def get_all_users(
+        db: AsyncSession, 
+        include_deleted: bool = True,
+        page: int = 1,
+        limit: int = 20,        
+        ) -> tuple[list[User], int]:
     """
-    Все пользователи.
+    Возвращает ОДНУ страницу пользователей + общее количество.
 
     Args:
         db: сессия БД
         include_deleted: True = показать и удалённых, False = только активные
-    """
-    query = select(User).order_by(User.username)
+        page: номер страницы (начиная с 1)
+        limit: размер страницы (сколько записей взять)
 
+    Returns:
+        кортеж (items, total):
+            items — список User на текущей странице
+            total — сколько пользователей ВСЕГО (для подсчёта числа страниц)
+    """
+
+    # ── 1. Считаем ОБЩЕЕ количество записей ──
+    count_query = select(func.count()).select_from(User)                            
     if not include_deleted:
-        query = query.where(~User.is_deleted)   # только активные
+        count_query = count_query.where(~User.is_deleted)
+
+    total = (await db.execute(count_query)).scalar() or 0
+
+    # ── 2. Выбираем ТОЛЬКО нужную страницу ──
+    query = select(User).order_by(User.username)
+    if not include_deleted:
+        query = query.where(~User.is_deleted)
+
+    # offset — сколько записей ПРОПУСТИТЬ (для 2-й страницы пропускаем 20)
+    # limit  — сколько записей ВЗЯТЬ
+    query = query.offset((page - 1) * limit).limit(limit)
 
     result = await db.execute(query)
-    return list(result.scalars().all())
+    items = list(result.scalars().all())
+
+    return items, total
 
 
 async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:

@@ -11,7 +11,7 @@
 """
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,24 +20,36 @@ from ..exceptions import RoleAlreadyExists, RoleInUse
 
 logger = logging.getLogger(__name__)   # логгер "auth.services.role_service"
 
-async def get_all_roles(db: AsyncSession) -> list[Role]:
+
+# ═══════════════════════════════════════════════════════════════
+# СПИСОК РОЛЕЙ (с пагинацией)
+# ═══════════════════════════════════════════════════════════════
+async def get_all_roles(
+        db: AsyncSession,
+        page: int = 1,
+        limit: int = 20,
+        ) -> tuple[list[Role], int]:
     """
-    Получить все роли.
+    Возвращает страницу ролей + общее количество.
 
-    Разбор async-запроса:
-    1. select(Role)          — строим SQL-запрос "SELECT * FROM roles"
-    2. await db.execute(...) — асинхронно выполняем (не блокируя event loop)
-    3. result.scalars()      — извлекаем объекты Role из результата
-    4. .all()                — в список
+    Returns:
+        (items, total)
     """
-    result = await db.execute(select(Role).order_by(Role.name))
-    return list(result.scalars().all())
 
+    # ── 1. Общее количество ──
+    total = (await db.execute(select(func.count()).select_from(Role))).scalar() or 0
 
-async def get_role_by_id(db: AsyncSession, role_id: int) -> Role | None:
-    """Найти роль по ID (или None)."""
-    # db.get() — короткая форма для "SELECT по primary key"
-    return await db.get(Role, role_id)
+    # ── 2. Страница ──
+    query = (
+        select(Role)
+        .order_by(Role.name)
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    items = list((await db.execute(query)).scalars().all())
+
+    return items, total
+
 
 
 async def create_role(db: AsyncSession, name: str, description: str | None = None) -> Role:

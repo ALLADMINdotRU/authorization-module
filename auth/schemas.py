@@ -11,7 +11,20 @@ Pydantic-схемы (аналог WTForms во Flask).
 """
 
 from datetime import datetime
+from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+
+# T — «любой тип». Page[User] = страница пользователей, Page[Role] = страница ролей.
+T = TypeVar("T")
+
+class Page(BaseModel, Generic[T]):
+    """Универсальная схема пагинации для любого списка."""
+    items: list[T]    # элементы текущей страницы
+    total: int        # сколько всего записей
+    page: int         # текущая страница
+    limit: int        # размер страницы
+    pages: int        # сколько всего страниц
 
 
 # ═══════════════════════════════════════════════════════════════
