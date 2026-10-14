@@ -12,7 +12,7 @@ LDAP-сервис: аутентификация, поиск, фабрика ко
 import asyncio
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -264,20 +264,35 @@ def _parse_username(username_input: str) -> tuple[str, str | None]:
 # Эти функции используются роутером ldap_servers.py.
 # Вся работа с БД асинхронная (await), сессия db приходит параметром.
 
-
-async def get_all_servers(db: AsyncSession) -> list[LDAPServer]:
+# ═══════════════════════════════════════════════════════════════
+# СПИСОК LDAP-СЕРВЕРОВ (с пагинацией)
+# ═══════════════════════════════════════════════════════════════
+async def get_all_servers(
+        db: AsyncSession,
+        page: int = 1,
+        limit: int = 20,
+        ) -> tuple[list[LDAPServer], int]:
     """
-    Получить ВСЕ LDAP-серверы (включая неактивные).
+    Получить ВСЕ LDAP-серверы (включая неактивные) + общее количество.
 
-    В отличие от get_active_servers (которая берёт только is_active=True),
-    здесь нужны ВСЕ — админ должен видеть и отключенные серверы,
-    чтобы их можно было включить/отредактировать.
+    (включая неактивные — админ должен видеть и отключенные серверы)
 
     Returns:
-        list[LDAPServer] — список серверов, отсортированных по приоритету
+        (items, total)
     """
-    result = await db.execute(select(LDAPServer).order_by(LDAPServer.priority))
-    return list(result.scalars().all())
+    # ── 1. Общее количество ──
+    total = (await db.execute(select(func.count()).select_from(LDAPServer))).scalar() or 0
+
+    # ── 2. Страница (сортировка по приоритету) ──
+    query = (
+        select(LDAPServer)
+        .order_by(LDAPServer.priority)
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    items = list((await db.execute(query)).scalars().all())
+
+    return items, total
 
 
 

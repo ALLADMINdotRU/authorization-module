@@ -12,12 +12,12 @@
 - DELETE /auth/admin/roles/{id}   — удалить роль
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User, Role
-from ..schemas import RoleCreate, RoleRead, RoleUpdate
+from ..schemas import RoleCreate, RoleRead, RoleUpdate, Page
 from ..security import admin_required
 from ..services import role_service
 from ..exceptions import RoleNotFound
@@ -30,14 +30,22 @@ router = APIRouter(prefix="/admin/rest/roles", tags=["admin-roles"])
 
 
 # ═══════════════════════════════════════════════════════════════
-# СПИСОК ВСЕХ РОЛЕЙ
+# СПИСОК ВСЕХ РОЛЕЙ (с пагинацией)
 # ═══════════════════════════════════════════════════════════════
-@router.get("", response_model=list[RoleRead])
-async def list_roles(db: AsyncSession = Depends(get_db), _admin: User = Depends(admin_required)):
+@router.get("", response_model=Page[RoleRead])
+async def list_roles(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1, description="Номер страницы (с 1)"),
+    limit: int = Query(20, ge=1, le=100, description="Размер страницы (1–100)"),
+    _admin: User = Depends(admin_required)):
     """
-    Получить список всех ролей.
+    Получить список всех ролей с пагинацией.
     """
-    return await role_service.get_all_roles(db) 
+    items, total = await role_service.get_all_roles(db, page=page, limit=limit)
+
+    pages = (total + limit - 1) // limit
+
+    return Page(items=items, total=total, page=page, limit=limit, pages=pages)
 
 
 # ═══════════════════════════════════════════════════════════════

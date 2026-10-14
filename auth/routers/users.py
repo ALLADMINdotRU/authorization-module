@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User
-from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate
+from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate, Page
 from ..security import admin_required
 from ..services import user_service
 from ..exceptions import UserNotFound, UserNotDeleted
@@ -18,14 +18,49 @@ from ..exceptions import UserNotFound, UserNotDeleted
 router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
 
-@router.get("", response_model=list[UserAdminRead])
+# ═══════════════════════════════════════════════════════════════
+# СПИСОК ПОЛЬЗОВАТЕЛЕЙ (с пагинацией)
+# ═══════════════════════════════════════════════════════════════
+@router.get("", response_model=Page[UserAdminRead])
 async def list_users(
     include_deleted: bool = Query(True, description="Показывать удалённых пользователей"),
+    page: int = Query(1, ge=1, description="Номер страницы (с 1)"),
+    limit: int = Query(20, ge=1, le=100, description="Размер страницы (1–100)"),
     db: AsyncSession = Depends(get_db), 
     _admin: User = Depends(admin_required),
     ):
-    """Список всех пользователей (только админ)."""
-    return await user_service.get_all_users(db, include_deleted=include_deleted)
+    """
+    Список пользователей с пагинацией.
+
+    Возвращает НЕ голый список, а структуру:
+        { items, total, page, limit, pages }
+
+    Примеры:
+        ?page=1&limit=20          → 1-я страница по 20
+        ?include_deleted=true     → включая удалённых
+    """
+
+    # Сервис возвращает (элементы страницы, общее количество)
+    items, total = await user_service.get_all_users(
+        db,
+        include_deleted=include_deleted,
+        page=page,
+        limit=limit,
+    )
+
+    # pages — сколько всего страниц = total / limit с округлением ВВЕРХ.
+    # (total + limit - 1) // limit — целочисленный ceil.
+    # Пример: total=153, limit=20 → (153+19)//20 = 8 страниц.
+    pages = (total + limit - 1) // limit
+
+
+    return Page(
+        items=items,
+        total=total,
+        page=page,
+        limit=limit,
+        pages=pages,
+    )
 
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
