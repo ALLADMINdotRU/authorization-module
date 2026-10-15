@@ -124,7 +124,7 @@ async def authenticate_ldap(db: AsyncSession, username_input: str, password: str
         User или None
     """
     # 1. Парсим логин
-    username, input_domain = _parse_username(username_input)
+    username, input_domain = _parse_username(username_input)                        # разбиваем на логин и домен
 
     # 2. Активные серверы
     servers = await get_active_servers(db)
@@ -141,8 +141,8 @@ async def authenticate_ldap(db: AsyncSession, username_input: str, password: str
     # 4. Пробуем каждый сервер
     for server in servers:
         # Формируем полный логин
-        auth_username = username_input if input_domain else (
-            f"{username}@{server.domain}" if server.domain else username
+        auth_username = username_input if input_domain else (                       # если домен в логине этот, то берем введеный логин как есть в противном случаем (если домена в логине не указано)
+            f"{username}@{server.domain}" if server.domain else username            # если у сервера указан домен. то формируем логин + домен иначе просто логин
         )
 
         # Асинхронно вызываем синхронную LDAP-проверку
@@ -173,6 +173,89 @@ async def authenticate_ldap(db: AsyncSession, username_input: str, password: str
         return None
 
     logger.warning(f"Аутентификация не удалась для {username_input}")
+    return None
+
+
+
+# ═══════════════════════════════════════════════════════════════
+# АУТЕНТИФИКАЦИЯ ПО EMAIL (поиск в LDAP по атрибуту mail)
+# ═══════════════════════════════════════════════════════════════
+async def authenticate_ldap_by_email(db: AsyncSession, email: str, password: str):
+    """
+    Найти LDAP-пользователя ПО EMAIL и проверить пароль.
+
+    Нужна для случая: пользователь логинится по email, в БД его нет,
+    но в LDAP есть пользователь с таким атрибутом mail.
+
+    Алгоритм:
+    1. Для каждого сервера ищем пользователя по фильтру (mail=email)
+    2. Нашли → берём его sAMAccountName (короткий логин)
+    3. Проверяем пароль через bind с этим логином
+    4. Пароль верен → находим/создаём пользователя в БД
+
+    Returns:
+        User или None
+    """
+    servers = await get_active_servers(db)
+    if not servers:
+        logger.warning("Нет активных LDAP-серверов")
+        return None
+
+    loop = asyncio.get_running_loop()                                                # ← получение ссылки на __текущий цикл событий (event loop) т.е. текущий поток
+
+    for server in servers:
+        # ── 1. Поиск пользователя по email (серверной учёткой) ──
+        # _search_ldap_sync использует bind-учётку сервера и ищет по фильтру.
+        # Фильтр "(mail=ivanov@email.com)" — LDAP-синтаксис: найти запись,
+        # у которой атрибут mail равен email.
+        try:
+            users = await loop.run_in_executor(
+                None,                                                               # None = стандартный пул потоков
+                _search_ldap_sync,                                                  # какая синхронная функция
+                server,                                                             # её аргументы
+                f"(mail={email})",                                                  # её аргументы
+                ["sAMAccountName", "mail"],   # нужен короткий логин                # её аргументы
+            )
+        except Exception as e:
+            logger.warning("Ошибка поиска по email '%s': %s", email, e)
+            continue
+
+        if not users:
+            continue   # на этом сервере нет такого email → следующий
+
+        sam = users[0].get("sAMAccountName")
+        if not sam:
+            continue   # нашли, но без sAMAccountName — пропускаем
+
+        # ── 2. Формируем логин для проверки пароля ──
+        # как и в обычной аутентификации: добавляем домен сервера
+        auth_username = f"{sam}@{server.domain}" if server.domain else sam
+
+        # ── 3. Проверяем пароль (bind с найденным логином) ──
+        ok = await loop.run_in_executor(
+            None, _authenticate_ldap_sync, server, auth_username, password
+        )
+        if not ok:
+            continue   # пароль не подошёл → следующий сервер
+
+        # ── 4. Пароль верен → ищем пользователя в БД ──
+        db_username = f"{sam}@{server.domain}" if server.domain else sam
+        result = await db.execute(
+            select(User).where(
+                (User.username == db_username) & (User.auth_method == "ldap")
+            )
+        )
+        user = result.scalar_one_or_none()
+        if user:
+            return user
+
+        # ── 5. Пользователя нет → создаём (если разрешено) ──
+        if server.auto_login_enabled:
+            return await _create_user_from_ldap(db, sam, server)
+
+        return None
+
+    logger.warning("Аутентификация по email не удалась: %s", email)
     return None
 
 
