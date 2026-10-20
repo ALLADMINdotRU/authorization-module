@@ -1,0 +1,39 @@
+# ═══════════════════════════════════════════════════════════════
+# .gitlab-ci.yml — сборка и пуш Docker-образа в Docker Hub
+# ═══════════════════════════════════════════════════════════════
+
+# ── Этапы pipeline (выполняются по порядку) ──
+stages:
+  - build
+  - deploy
+
+# ── Общие переменные ──
+variables:
+  # Имя образа в Docker Hub: <логин>/<имя-репозитория>
+  DOCKER_IMAGE: "$DOCKER_HUB_USERNAME/auth-module"
+
+
+# ═══════════════════════════════════════════════════════════════
+# .gitlab-ci.yml — сборка и пуш Docker-образа в Docker Hub
+# ═══════════════════════════════════════════════════════════════
+
+build:
+  stage: build
+
+  tags:
+    - global-runer     # ← Указываем МОЙ раннер (тег должен совпадать с тегом раннера)
+
+  script:
+    - docker build -t "$DOCKER_IMAGE:$CI_COMMIT_SHA" -f Dockerfile .                          # собираем общий образ
+    - docker tag "$DOCKER_IMAGE:$CI_COMMIT_SHA" "$DOCKER_IMAGE:latest"                        # Дополнительный тег latest
+
+
+push_image_to_dockerhub_GLOBAL:
+  stage: deploy
+  tags:
+    - global-runer #указываем какой ранер будем запускать
+  script:
+    - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin            #логинимся на dockerhub
+    - docker push "$DOCKER_IMAGE:$CI_COMMIT_SHA"                                           #пушим образ на dockerhub
+    - docker push "$DOCKER_IMAGE:latest"
+  when: manual
