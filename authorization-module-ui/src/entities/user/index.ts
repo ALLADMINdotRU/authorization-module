@@ -7,4 +7,10 @@ export {
   useRestoreUserMutation,
   useUpdateUserMutation,
 } from "./api/userApi"
-export type { User, UserCreate, UserUpdate } from "./model/types"
+export type {
+  ListUsersArgs,
+  Page,
+  User,
+  UserCreate,
+  UserUpdate,
+} from "./model/types"

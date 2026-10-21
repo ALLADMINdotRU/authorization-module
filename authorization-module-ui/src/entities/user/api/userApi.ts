@@ -1,13 +1,19 @@
 import { baseApi } from "../../../shared/api/baseApi"
-import type { User, UserCreate, UserUpdate } from "../model/types"
+import type {
+  ListUsersArgs,
+  Page,
+  User,
+  UserCreate,
+  UserUpdate,
+} from "../model/types"
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: build => ({
-    listUsers: build.query<User[], boolean>({
-      query: includeDeleted => ({
+    listUsers: build.query<Page<User>, ListUsersArgs>({
+      query: ({ include_deleted, page = 1, limit = 20 }) => ({
         url: "/auth/admin/rest/users",
         method: "GET",
-        params: { include_deleted: includeDeleted },
+        params: { include_deleted, page, limit },
       }),
       providesTags: ["Users"],
     }),

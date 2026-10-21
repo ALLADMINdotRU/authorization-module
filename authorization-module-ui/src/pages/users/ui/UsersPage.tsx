@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Box,
   Button,
@@ -15,6 +15,7 @@ import {
   DialogTitle,
   Divider,
   FormControlLabel,
+  Pagination,
   Paper,
   Stack,
   Table,
@@ -22,6 +23,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Typography,
   useMediaQuery,
@@ -86,14 +88,33 @@ const UserActions = ({
 
 export const UsersPage = () => {
   const [showDeleted, setShowDeleted] = useState(false)
-  const { data, error, isLoading } = useListUsersQuery(showDeleted)
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(20)
+  const { data, error, isLoading } = useListUsersQuery({
+    include_deleted: showDeleted,
+    page,
+    limit,
+  })
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation()
   const [restoreUser, { isLoading: isRestoring }] = useRestoreUserMutation()
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [restoreError, setRestoreError] = useState<string | null>(null)
-  const users = data ?? []
+  const users = data?.items ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.pages ?? 0
   const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"))
+
+  useEffect(() => {
+    if (data && data.pages > 0 && page > data.pages) {
+      setPage(data.pages)
+    }
+  }, [data, page])
+
+  const handleShowDeletedChange = (checked: boolean) => {
+    setShowDeleted(checked)
+    setPage(1)
+  }
 
   const openDeleteDialog = (user: User) => {
     setDeleteError(null)
@@ -149,7 +170,7 @@ export const UsersPage = () => {
               <Checkbox
                 checked={showDeleted}
                 onChange={event => {
-                  setShowDeleted(event.target.checked)
+                  handleShowDeletedChange(event.target.checked)
                 }}
               />
             }
@@ -184,50 +205,62 @@ export const UsersPage = () => {
       )}
 
       {users.length > 0 && isMobile && (
-        <Stack spacing={1}>
-          {users.map(user => (
-            <Card key={user.id}>
-              <CardContent>
-                <Typography variant="h6" component="div">
-                  {user.full_name ?? user.username}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {user.username}
-                </Typography>
-                <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-                  <Chip
-                    label={user.is_active ? "Активен" : "Неактивен"}
-                    color={user.is_active ? "success" : "default"}
-                    size="small"
+        <>
+          <Stack spacing={1}>
+            {users.map(user => (
+              <Card key={user.id}>
+                <CardContent>
+                  <Typography variant="h6" component="div">
+                    {user.full_name ?? user.username}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.username}
+                  </Typography>
+                  <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+                    <Chip
+                      label={user.is_active ? "Активен" : "Неактивен"}
+                      color={user.is_active ? "success" : "default"}
+                      size="small"
+                    />
+                    {user.is_deleted && (
+                      <Chip label="Удалён" color="error" size="small" />
+                    )}
+                  </Box>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="body2">{user.email ?? "—"}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {[user.company, user.department]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.position ?? "—"}
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <UserActions
+                    user={user}
+                    onDelete={openDeleteDialog}
+                    onRestore={user => {
+                      void handleRestore(user)
+                    }}
+                    isRestoring={isRestoring}
                   />
-                  {user.is_deleted && (
-                    <Chip label="Удалён" color="error" size="small" />
-                  )}
-                </Box>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="body2">{user.email ?? "—"}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {[user.company, user.department]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {user.position ?? "—"}
-                </Typography>
-              </CardContent>
-              <CardActions>
-                <UserActions
-                  user={user}
-                  onDelete={openDeleteDialog}
-                  onRestore={user => {
-                    void handleRestore(user)
-                  }}
-                  isRestoring={isRestoring}
-                />
-              </CardActions>
-            </Card>
-          ))}
-        </Stack>
+                </CardActions>
+              </Card>
+            ))}
+          </Stack>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={(_event, value) => {
+                setPage(value)
+              }}
+              color="primary"
+            />
+          </Box>
+        </>
       )}
 
       {users.length > 0 && !isMobile && (
@@ -274,6 +307,27 @@ export const UsersPage = () => {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {!isMobile && total > 0 && (
+        <TablePagination
+          component="div"
+          count={total}
+          page={page - 1}
+          onPageChange={(_event, newPage) => {
+            setPage(newPage + 1)
+          }}
+          rowsPerPage={limit}
+          onRowsPerPageChange={event => {
+            setLimit(Number.parseInt(event.target.value, 10))
+            setPage(1)
+          }}
+          rowsPerPageOptions={[10, 20, 50]}
+          labelRowsPerPage="Строк на странице:"
+          labelDisplayedRows={({ from, to, count }) =>
+            `${String(from)}–${String(to)} из ${String(count)}`
+          }
+        />
       )}
 
       <Dialog open={userToDelete !== null} onClose={closeDeleteDialog}>
