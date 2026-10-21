@@ -30,7 +30,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: .                    # собирать из корня (там Dockerfile)
+          context: authorization-module-app                    # собирать из корня (там Dockerfile)
           push: true                    # запушить после сборки
           tags: |
             fil232323/auth-module-app:latest

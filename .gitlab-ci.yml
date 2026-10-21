@@ -25,7 +25,7 @@ build:
     - global-runer     # ← Указываем МОЙ раннер (тег должен совпадать с тегом раннера)
 
   script:
-    - docker build -t "$DOCKER_IMAGE:$CI_COMMIT_SHA" -f Dockerfile .                          # собираем общий образ
+    - docker build -t "$DOCKER_IMAGE:$CI_COMMIT_SHA" -f -f authorization-module-app/Dockerfile authorization-module-app                          # собираем общий образ
     - docker tag "$DOCKER_IMAGE:$CI_COMMIT_SHA" "$DOCKER_IMAGE:latest"                        # Дополнительный тег latest
 
 
