@@ -33,5 +33,5 @@ jobs:
           context: .                    # собирать из корня (там Dockerfile)
           push: true                    # запушить после сборки
           tags: |
-            fil232323/auth-module-app:latest              # тег latest
-            fil232323/auth-module-app:${{ github.sha }}   # тег = хэш коммита
+            fil232323/auth-module-app:latest
+            fil232323/auth-module-app:${{ github.sha }}
