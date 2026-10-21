@@ -1,0 +1,49 @@
+export type User = {
+  id: number
+  username: string
+  email: string | null
+  full_name: string | null
+  mobile_phone: string | null
+  ip_phone: string | null
+  messenger: string | null
+  company: string | null
+  department: string | null
+  position: string | null
+  is_active: boolean
+  auth_method: string
+  created_at: string
+  is_deleted: boolean
+  deleted_at: string | null
+  deleted_by: number | null
+}
+
+export type UserCreate = {
+  username: string
+  password?: string | null
+  email?: string | null
+  full_name?: string | null
+  mobile_phone?: string | null
+  ip_phone?: string | null
+  messenger?: string | null
+  company?: string | null
+  department?: string | null
+  position?: string | null
+  auth_method?: string
+  is_active?: boolean
+}
+
+export type UserUpdate = Partial<UserCreate>
+
+export type Page<T> = {
+  items: T[]
+  total: number
+  page: number
+  limit: number
+  pages: number
+}
+
+export type ListUsersArgs = {
+  include_deleted: boolean
+  page?: number
+  limit?: number
+}
