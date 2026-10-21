@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════════════════════════
+# docker-compose.yml
+# Запуск приложения (образ из Docker Hub) + PostgreSQL
+# ═══════════════════════════════════════════════════════════════
+
+services:
+
+  # ═══════════════════════════════════════════════════════════
+  # СЕРВИС 1: база данных PostgreSQL
+  # ═══════════════════════════════════════════════════════════
+  db:
+    image: postgres:16            # готовый образ PostgreSQL 16
+
+    environment:                  # переменные для создания БД (только при ПЕРВОМ запуске)
+      POSTGRES_USER: user_test    #   пользователь БД
+      POSTGRES_PASSWORD: pass_test #  пароль пользователя
+      POSTGRES_DB: db_test2       #   имя базы данных
+
+    ports:
+      - "5432:5432"               # проброс порта: хост 5432 → контейнер 5432
+
+    volumes:
+      - pg_data:/var/lib/postgresql/data   # сохраняем данные (иначе сотрутся при пересоздании)
+
+    healthcheck:                  # проверка готовности БД
+      test: ["CMD-SHELL", "pg_isready -U user_test"]   # готова ли БД принимать подключения
+      interval: 5s                #   проверять каждые 5 сек
+      timeout: 5s                 #   таймаут ответа
+      retries: 5                  #   попыток, прежде чем «не готова»
+
+  # ═══════════════════════════════════════════════════════════
+  # СЕРВИС 2: приложение (образ из Docker Hub)
+  # ═══════════════════════════════════════════════════════════
+  app:
+    image: fil232323/auth-module:latest   # ← ТВОЙ образ из Docker Hub (не build!)
+
+    depends_on:                   # ждём готовности БД
+      db:
+        condition: service_healthy   # пока healthcheck БД не скажет "healthy"
+
+    environment:                  # переменные окружения приложения (заменяют .env)
+      DATABASE_URL: postgresql+asyncpg://user_test:pass_test@db:5432/db_test2
+      #                                                ^^ ← host = имя сервиса "db"
+      SECRET_KEY: your-secret-key-change-in-production        # ключ подписи JWT
+      ENCRYPTION_KEY: ZXAhQBbKD9_GVzlP06WR3y3GMm9eE1j-hQfUCnawwpM=   # ключ шифрования Fernet
+      JWT_ALGORITHM: HS256         # алгоритм JWT
+      JWT_EXPIRE_MINUTES: "60"     # жизнь access-токена (мин)
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"   # жизнь refresh-токена (дней)
+      LOG_LEVEL: INFO              # уровень логирования
+      DEBUG: "true"                # режим отладки
+
+    ports:
+      - "8000:8000"               # проброс порта приложения
+
+volumes:
+  pg_data:                        # именованный том для данных БД
