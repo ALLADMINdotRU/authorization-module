@@ -32,7 +32,7 @@ services:
   # СЕРВИС 2: приложение (образ из Docker Hub)
   # ═══════════════════════════════════════════════════════════
   app:
-    image: fil232323/auth-module:latest   # ← ТВОЙ образ из Docker Hub (не build!)
+    image: fil232323/auth-module-app:latest   # ← ТВОЙ образ из Docker Hub (не build!)
 
     depends_on:                   # ждём готовности БД
       db:
