@@ -1,0 +1,23 @@
+# ── Виртуальное окружение ──
+venv/
+.venv/
+
+# ── Python-мусор ──
+__pycache__/
+*.pyc
+
+# ── Секреты ──
+.env
+
+# ── Логи ──
+logs/
+*.log
+
+# ── Личное и временное ──
+заметки.txt
+test.txt
+requirements2.txt
+
+# ── IDE ──
+.idea/
+.vscode/
