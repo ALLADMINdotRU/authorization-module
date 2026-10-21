@@ -1,18 +1,36 @@
-.venv/
-/venv/
-*pyc
-/migrations/
-/.idea/
-заметки.txt
-.env
+# ── Git и служебное ──
+.git/
+.github/
 .gitignore
-__pycache__
-.vscode
-/logs/
-*log
-test.txt
-.dockerignore
-docker-compose.yml
 .gitlab-ci.yml
 Dockerfile
-/authorization-module-ui/
+docker-compose.yml
+.dockerignore
+README.md
+
+# ── Виртуальное окружение и Python-мусор ──
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# ── Логи ──
+logs/
+*.log
+
+# ── Временное и личное ──
+test.txt
+заметки.txt
+requirements2.txt
+
+# ── Секреты ──
+.env
+
+# ── Фронтенд ──
+authorization-module-ui/
+
+# ── IDE ──
+.idea/
+.vscode/
+
+# ── Миграции не трогаем: alembic/ нужен в образе ──
