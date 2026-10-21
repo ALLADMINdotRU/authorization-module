@@ -46,7 +46,7 @@ async def authenticate(db: AsyncSession, login: str, password: str):
         User или None
     """
     # 1.  Ищем пользователя по username ИЛИ email
-    result = await db.execute(select(User).where((User.username == login)|(user.email == login)))
+    result = await db.execute(select(User).where((User.username == login)|(User.email == login)))
     user = result.scalar_one_or_none()
 
     if user:

@@ -3,8 +3,9 @@ uvicorn[standard]           # [standard] = с поддержкой watchmode, we
 sqlalchemy[asyncio]         # asyncio-расширение SQLAlchemy
 python-dotenv
 pydantic-settings           # BaseSettings — читает .env
+email-validator
 python-jose[cryptography]   # генерация/проверка JWT-токенов
-passlib[bcrypt]             # хеширование паролей
+bcrypt                      # хеширование паролей
 python-multipart            # нужен FastAPI для form-data (OAuth2PasswordRequestForm)
 ldap3                       # синхронная LDAP-библиотека (как во Flask)
 cryptography                # ── Шифрование паролей в БД ──
