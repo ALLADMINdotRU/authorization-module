@@ -1,3 +1,4 @@
+
 # ── Виртуальное окружение ──
 venv/
 .venv/
@@ -21,3 +22,4 @@ requirements2.txt
 # ── IDE ──
 .idea/
 .vscode/
+
