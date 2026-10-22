@@ -45,5 +45,5 @@ jobs:
           context: authorization-module-ui   # папка, где Dockerfile фронтенда
           push: true                         # запушить после сборки (true = да)
           tags: |                            # список тегов образа
-            fil232323/auth-module-ui:latest            #   тег latest (последняя версия)
-            fil232323/auth-module-ui:${{ github.sha }} #   тег = хэш коммита
+            fil232323/auth-module-ui:latest            
+            fil232323/auth-module-ui:${{ github.sha }} 
