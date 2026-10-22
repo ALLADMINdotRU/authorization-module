@@ -9,7 +9,9 @@ on:
   push:
     branches:
       - main
-
+    paths:
+      - 'authorization-module-app/**'   # ← собирать только при изменении бэкенда
+      
 jobs:
   build:
     runs-on: ubuntu-latest        # раннер GitHub (виртуальная машина с Docker)
