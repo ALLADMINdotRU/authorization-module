@@ -11,6 +11,7 @@ on:
       - main
     paths:
       - 'authorization-module-app/**'   # ← собирать только при изменении бэкенда
+  workflow_dispatch:     # ← позволяет запускать вручную
       
 jobs:
   build:
