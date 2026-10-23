@@ -357,9 +357,9 @@ export const UsersPage = () => {
             setPage(1)
           }}
           rowsPerPageOptions={[10, 20, 50]}
-          labelRowsPerPage={t("users.rowsPerPage")}
+          labelRowsPerPage={t("common.rowsPerPage")}
           labelDisplayedRows={({ from, to, count }) =>
-            t("users.displayedRows", { from, to, count })
+            t("common.displayedRows", { from, to, count })
           }
         />
       )}

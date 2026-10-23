@@ -34,16 +34,10 @@ export type UserCreate = {
 
 export type UserUpdate = Partial<UserCreate>
 
-export type Page<T> = {
-  items: T[]
-  total: number
-  page: number
-  limit: number
-  pages: number
-}
-
 export type ListUsersArgs = {
   include_deleted: boolean
   page?: number
   limit?: number
 }
+
+export type { Page } from "../../../shared/api/types"
