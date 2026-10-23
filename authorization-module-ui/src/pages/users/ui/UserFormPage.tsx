@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { SubmitEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -13,7 +13,9 @@ import {
 import { skipToken } from "@reduxjs/toolkit/query"
 import { Controller, useForm } from "react-hook-form"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { z } from "zod"
+import type { TFunction } from "i18next"
 import {
   useCreateUserMutation,
   useGetUserQuery,
@@ -22,26 +24,27 @@ import {
 import type { UserCreate, UserUpdate } from "../../../entities/user"
 import { PageHeader } from "../../../shared/ui/page-header"
 
-const userFormSchema = z.object({
-  username: z.string().min(1, "Введите логин"),
-  password: z.string(),
-  email: z
-    .string()
-    .refine(value => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), {
-      message: "Некорректный email",
-    }),
-  full_name: z.string(),
-  mobile_phone: z.string(),
-  ip_phone: z.string(),
-  messenger: z.string(),
-  company: z.string(),
-  department: z.string(),
-  position: z.string(),
-  auth_method: z.string(),
-  is_active: z.boolean(),
-})
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-type UserFormValues = z.infer<typeof userFormSchema>
+const buildUserFormSchema = (t: TFunction) =>
+  z.object({
+    username: z.string().min(1, t("userForm.usernameRequired")),
+    password: z.string(),
+    email: z.string().refine(value => value === "" || EMAIL_REGEX.test(value), {
+      message: t("userForm.invalidEmail"),
+    }),
+    full_name: z.string(),
+    mobile_phone: z.string(),
+    ip_phone: z.string(),
+    messenger: z.string(),
+    company: z.string(),
+    department: z.string(),
+    position: z.string(),
+    auth_method: z.string(),
+    is_active: z.boolean(),
+  })
+
+type UserFormValues = z.infer<ReturnType<typeof buildUserFormSchema>>
 
 const defaultValues: UserFormValues = {
   username: "",
@@ -62,6 +65,7 @@ const toNullable = (value?: string | null) =>
   value?.trim() ? value.trim() : null
 
 export const UserFormPage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams()
   const isEdit = id !== undefined
@@ -70,7 +74,9 @@ export const UserFormPage = () => {
   const { data: user, isLoading } = useGetUserQuery(userId ?? skipToken)
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation()
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState(false)
+
+  const schema = useMemo(() => buildUserFormSchema(t), [t])
 
   const {
     control,
@@ -79,7 +85,7 @@ export const UserFormPage = () => {
     reset,
     formState: { errors },
   } = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema),
+    resolver: zodResolver(schema),
     defaultValues,
   })
 
@@ -103,7 +109,7 @@ export const UserFormPage = () => {
   }, [user, reset])
 
   const onSubmit = async (values: UserFormValues) => {
-    setSubmitError(null)
+    setSubmitError(false)
     try {
       if (isEdit && userId !== undefined) {
         const data: UserUpdate = {
@@ -140,7 +146,7 @@ export const UserFormPage = () => {
       }
       await navigate("/users")
     } catch {
-      setSubmitError("Не удалось сохранить пользователя")
+      setSubmitError(true)
     }
   }
 
@@ -148,7 +154,7 @@ export const UserFormPage = () => {
     void handleSubmit(onSubmit)(event)
   }
 
-  const title = isEdit ? "Редактирование пользователя" : "Создание пользователя"
+  const title = isEdit ? t("userForm.editTitle") : t("userForm.createTitle")
   const isSubmitting = isCreating || isUpdating
   const isLdap = isEdit && user?.auth_method !== "local"
 
@@ -171,43 +177,50 @@ export const UserFormPage = () => {
           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
           gap: 2,
           maxWidth: 900,
+          mx: "auto",
         }}
       >
         <TextField
-          label="Логин"
+          label={t("common.username")}
           {...register("username")}
           error={!!errors.username}
           helperText={errors.username?.message}
           required
         />
         <TextField
-          label="Пароль"
+          label={t("common.password")}
           type="password"
           {...register("password")}
           disabled={isLdap}
           helperText={
             isLdap
-              ? "Пароль берётся из AD"
+              ? t("userForm.passwordFromAd")
               : isEdit
-                ? "Оставьте пустым, чтобы не менять пароль"
+                ? t("userForm.passwordKeepEmpty")
                 : undefined
           }
         />
-        <TextField label="ФИО" {...register("full_name")} />
+        <TextField label={t("common.fullName")} {...register("full_name")} />
         <TextField
-          label="Email"
+          label={t("common.email")}
           type="email"
           {...register("email")}
           error={!!errors.email}
           helperText={errors.email?.message}
         />
-        <TextField label="Мобильный телефон" {...register("mobile_phone")} />
-        <TextField label="IP-телефон" {...register("ip_phone")} />
-        <TextField label="Мессенджер" {...register("messenger")} />
-        <TextField label="Компания" {...register("company")} />
-        <TextField label="Отдел" {...register("department")} />
-        <TextField label="Должность" {...register("position")} />
-        <TextField label="Метод авторизации" {...register("auth_method")} />
+        <TextField
+          label={t("userForm.mobilePhone")}
+          {...register("mobile_phone")}
+        />
+        <TextField label={t("userForm.ipPhone")} {...register("ip_phone")} />
+        <TextField label={t("userForm.messenger")} {...register("messenger")} />
+        <TextField label={t("common.company")} {...register("company")} />
+        <TextField label={t("common.department")} {...register("department")} />
+        <TextField label={t("common.position")} {...register("position")} />
+        <TextField
+          label={t("userForm.authMethod")}
+          {...register("auth_method")}
+        />
         <Controller
           name="is_active"
           control={control}
@@ -221,23 +234,23 @@ export const UserFormPage = () => {
                   }}
                 />
               }
-              label="Активен"
+              label={t("common.active")}
             />
           )}
         />
 
         {submitError && (
           <Typography color="error" sx={{ gridColumn: "1 / -1" }}>
-            {submitError}
+            {t("userForm.saveError")}
           </Typography>
         )}
 
         <Box sx={{ display: "flex", gap: 2, gridColumn: "1 / -1" }}>
           <Button type="submit" variant="contained" disabled={isSubmitting}>
-            Сохранить
+            {t("common.save")}
           </Button>
           <Button component={Link} to="/users" variant="outlined">
-            Назад
+            {t("common.back")}
           </Button>
         </Box>
       </Box>
