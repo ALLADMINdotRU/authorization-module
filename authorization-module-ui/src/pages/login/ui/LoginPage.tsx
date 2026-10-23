@@ -2,7 +2,9 @@ import { useState } from "react"
 import type { SubmitEvent } from "react"
 import { Box, Button, TextField, Typography } from "@mui/material"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import { useAppDispatch } from "../../../app/hooks"
+import { LanguageSwitcher } from "../../../shared/ui/language-switcher"
 import {
   setUser,
   useLazyMeQuery,
@@ -10,6 +12,7 @@ import {
 } from "../../../features/auth"
 
 export const LoginPage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const [login, { isLoading, error }] = useLoginMutation()
@@ -46,8 +49,11 @@ export const LoginPage = () => {
         gap: 2,
       }}
     >
+      <Box sx={{ position: "fixed", top: 16, right: 16 }}>
+        <LanguageSwitcher />
+      </Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        Модуль авторизации
+        {t("login.title")}
       </Typography>
       <Box
         component="form"
@@ -55,7 +61,7 @@ export const LoginPage = () => {
         sx={{ display: "flex", flexDirection: "column", gap: 2, width: 300 }}
       >
         <TextField
-          label="Логин"
+          label={t("common.username")}
           value={username}
           onChange={event => {
             setUsername(event.target.value)
@@ -63,7 +69,7 @@ export const LoginPage = () => {
           required
         />
         <TextField
-          label="Пароль"
+          label={t("common.password")}
           type="password"
           value={password}
           onChange={event => {
@@ -72,10 +78,10 @@ export const LoginPage = () => {
           required
         />
         {error && (
-          <Typography color="error">Неверный логин или пароль</Typography>
+          <Typography color="error">{t("login.invalidCredentials")}</Typography>
         )}
         <Button type="submit" variant="contained" disabled={isLoading}>
-          Войти
+          {t("common.login")}
         </Button>
       </Box>
     </Box>

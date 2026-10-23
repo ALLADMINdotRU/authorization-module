@@ -29,6 +29,7 @@ import {
   useMediaQuery,
 } from "@mui/material"
 import { Link } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   useDeleteUserMutation,
   useListUsersQuery,
@@ -49,44 +50,49 @@ const UserActions = ({
   onDelete,
   onRestore,
   isRestoring,
-}: UserActionsProps) => (
-  <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
-    <Button
-      component={Link}
-      to={`/users/${String(user.id)}/edit`}
-      size="small"
-      variant="outlined"
-    >
-      Редактировать
-    </Button>
-    {user.is_deleted ? (
+}: UserActionsProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
       <Button
+        component={Link}
+        to={`/users/${String(user.id)}/edit`}
         size="small"
         variant="outlined"
-        color="success"
-        disabled={isRestoring}
-        onClick={() => {
-          onRestore(user)
-        }}
       >
-        Восстановить
+        {t("common.edit")}
       </Button>
-    ) : (
-      <Button
-        size="small"
-        variant="outlined"
-        color="error"
-        onClick={() => {
-          onDelete(user)
-        }}
-      >
-        Удалить
-      </Button>
-    )}
-  </Box>
-)
+      {user.is_deleted ? (
+        <Button
+          size="small"
+          variant="outlined"
+          color="success"
+          disabled={isRestoring}
+          onClick={() => {
+            onRestore(user)
+          }}
+        >
+          {t("common.restore")}
+        </Button>
+      ) : (
+        <Button
+          size="small"
+          variant="outlined"
+          color="error"
+          onClick={() => {
+            onDelete(user)
+          }}
+        >
+          {t("common.delete")}
+        </Button>
+      )}
+    </Box>
+  )
+}
 
 export const UsersPage = () => {
+  const { t, i18n } = useTranslation()
   const [showDeleted, setShowDeleted] = useState(false)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
@@ -98,8 +104,8 @@ export const UsersPage = () => {
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation()
   const [restoreUser, { isLoading: isRestoring }] = useRestoreUserMutation()
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [restoreError, setRestoreError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState(false)
+  const [restoreError, setRestoreError] = useState(false)
   const users = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
@@ -117,12 +123,12 @@ export const UsersPage = () => {
   }
 
   const openDeleteDialog = (user: User) => {
-    setDeleteError(null)
+    setDeleteError(false)
     setUserToDelete(user)
   }
 
   const closeDeleteDialog = () => {
-    setDeleteError(null)
+    setDeleteError(false)
     setUserToDelete(null)
   }
 
@@ -130,27 +136,27 @@ export const UsersPage = () => {
     if (!userToDelete) {
       return
     }
-    setDeleteError(null)
+    setDeleteError(false)
     try {
       await deleteUser(userToDelete.id).unwrap()
       setUserToDelete(null)
     } catch {
-      setDeleteError("Не удалось удалить пользователя")
+      setDeleteError(true)
     }
   }
 
   const handleRestore = async (user: User) => {
-    setRestoreError(null)
+    setRestoreError(false)
     try {
       await restoreUser(user.id).unwrap()
     } catch {
-      setRestoreError("Не удалось восстановить пользователя")
+      setRestoreError(true)
     }
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title="Пользователи" />
+      <PageHeader title={t("users.title")} />
       <Box
         sx={{
           mb: 2,
@@ -162,7 +168,7 @@ export const UsersPage = () => {
         }}
       >
         <Button component={Link} to="/main" variant="outlined">
-          Назад
+          {t("common.back")}
         </Button>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           <FormControlLabel
@@ -174,10 +180,10 @@ export const UsersPage = () => {
                 }}
               />
             }
-            label="Показывать удалённых пользователей"
+            label={t("users.showDeleted")}
           />
           <Button component={Link} to="/users/create" variant="contained">
-            Создать
+            {t("common.create")}
           </Button>
         </Box>
       </Box>
@@ -190,18 +196,18 @@ export const UsersPage = () => {
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
-          Не удалось загрузить пользователей
+          {t("users.loadError")}
         </Typography>
       )}
 
       {restoreError && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {restoreError}
+          {t("users.restoreError")}
         </Typography>
       )}
 
       {!isLoading && !error && users.length === 0 && (
-        <Typography color="text.secondary">Нет пользователей</Typography>
+        <Typography color="text.secondary">{t("users.empty")}</Typography>
       )}
 
       {users.length > 0 && isMobile && (
@@ -218,12 +224,20 @@ export const UsersPage = () => {
                   </Typography>
                   <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
                     <Chip
-                      label={user.is_active ? "Активен" : "Неактивен"}
+                      label={
+                        user.is_active
+                          ? t("common.active")
+                          : t("common.inactive")
+                      }
                       color={user.is_active ? "success" : "default"}
                       size="small"
                     />
                     {user.is_deleted && (
-                      <Chip label="Удалён" color="error" size="small" />
+                      <Chip
+                        label={t("common.deleted")}
+                        color="error"
+                        size="small"
+                      />
                     )}
                   </Box>
                   <Divider sx={{ my: 1 }} />
@@ -236,6 +250,16 @@ export const UsersPage = () => {
                   <Typography variant="body2" color="text.secondary">
                     {user.position ?? "—"}
                   </Typography>
+                  {user.is_deleted && (
+                    <Typography variant="body2" color="error" sx={{ mt: 0.5 }}>
+                      {t("users.deletedLabel")}{" "}
+                      {user.deleted_at
+                        ? new Date(user.deleted_at).toLocaleString(
+                            i18n.language,
+                          )
+                        : "—"}
+                    </Typography>
+                  )}
                 </CardContent>
                 <CardActions>
                   <UserActions
@@ -269,14 +293,15 @@ export const UsersPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>ID</TableCell>
-                <TableCell>Логин</TableCell>
-                <TableCell>ФИО</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Компания</TableCell>
-                <TableCell>Отдел</TableCell>
-                <TableCell>Должность</TableCell>
-                <TableCell>Активен</TableCell>
-                <TableCell>Действия</TableCell>
+                <TableCell>{t("common.username")}</TableCell>
+                <TableCell>{t("common.fullName")}</TableCell>
+                <TableCell>{t("common.email")}</TableCell>
+                <TableCell>{t("common.company")}</TableCell>
+                <TableCell>{t("common.department")}</TableCell>
+                <TableCell>{t("common.position")}</TableCell>
+                <TableCell>{t("common.active")}</TableCell>
+                <TableCell>{t("users.deletedAt")}</TableCell>
+                <TableCell>{t("common.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -290,7 +315,16 @@ export const UsersPage = () => {
                   <TableCell>{user.department ?? "—"}</TableCell>
                   <TableCell>{user.position ?? "—"}</TableCell>
                   <TableCell>
-                    {user.is_deleted ? "Удалён" : user.is_active ? "Да" : "Нет"}
+                    {user.is_deleted
+                      ? t("common.deleted")
+                      : user.is_active
+                        ? t("common.yes")
+                        : t("common.no")}
+                  </TableCell>
+                  <TableCell>
+                    {user.is_deleted && user.deleted_at
+                      ? new Date(user.deleted_at).toLocaleString(i18n.language)
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <UserActions
@@ -323,27 +357,29 @@ export const UsersPage = () => {
             setPage(1)
           }}
           rowsPerPageOptions={[10, 20, 50]}
-          labelRowsPerPage="Строк на странице:"
+          labelRowsPerPage={t("users.rowsPerPage")}
           labelDisplayedRows={({ from, to, count }) =>
-            `${String(from)}–${String(to)} из ${String(count)}`
+            t("users.displayedRows", { from, to, count })
           }
         />
       )}
 
       <Dialog open={userToDelete !== null} onClose={closeDeleteDialog}>
-        <DialogTitle>Удалить пользователя?</DialogTitle>
+        <DialogTitle>{t("users.deleteDialogTitle")}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Пользователь «{userToDelete?.username}» будет удалён безвозвратно.
+            {t("users.deleteDialogBody", {
+              username: userToDelete?.username ?? "",
+            })}
           </DialogContentText>
           {deleteError && (
             <Typography color="error" sx={{ mt: 1 }}>
-              {deleteError}
+              {t("users.deleteError")}
             </Typography>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeDeleteDialog}>Отмена</Button>
+          <Button onClick={closeDeleteDialog}>{t("common.cancel")}</Button>
           <Button
             color="error"
             variant="contained"
@@ -352,7 +388,7 @@ export const UsersPage = () => {
               void handleDelete()
             }}
           >
-            Удалить
+            {t("common.delete")}
           </Button>
         </DialogActions>
       </Dialog>

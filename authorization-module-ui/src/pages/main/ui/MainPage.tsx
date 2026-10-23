@@ -1,10 +1,13 @@
 import { Box, Button } from "@mui/material"
+import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router-dom"
 import { useAppDispatch } from "../../../app/hooks"
 import { clearUser, useLogoutMutation } from "../../../features/auth"
+import { LanguageSwitcher } from "../../../shared/ui/language-switcher"
 import { PageHeader } from "../../../shared/ui/page-header"
 
 export const MainPage = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const [logout] = useLogoutMutation()
@@ -28,16 +31,19 @@ export const MainPage = () => {
           alignItems: "center",
         }}
       >
-        <PageHeader title="Главная" />
-        <Button
-          onClick={() => {
-            void handleLogout()
-          }}
-          variant="outlined"
-          color="error"
-        >
-          Выход
-        </Button>
+        <PageHeader title={t("navigation.home")} />
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <LanguageSwitcher />
+          <Button
+            onClick={() => {
+              void handleLogout()
+            }}
+            variant="outlined"
+            color="error"
+          >
+            {t("common.logout")}
+          </Button>
+        </Box>
       </Box>
       <Box
         sx={{
@@ -48,13 +54,13 @@ export const MainPage = () => {
         }}
       >
         <Button component={Link} to="/users" variant="outlined">
-          Пользователи
+          {t("navigation.users")}
         </Button>
         <Button component={Link} to="/roles" variant="outlined">
-          Роли
+          {t("navigation.roles")}
         </Button>
         <Button component={Link} to="/ldap-servers" variant="outlined">
-          LDAP-серверы
+          {t("navigation.ldapServers")}
         </Button>
       </Box>
     </Box>
