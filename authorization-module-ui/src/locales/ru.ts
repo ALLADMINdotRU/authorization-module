@@ -64,6 +64,17 @@ export default {
     title: "Роли",
     createTitle: "Создание роли",
     editTitle: "Редактирование роли",
+    name: "Имя",
+    description: "Описание",
+    empty: "Нет ролей",
+    loadError: "Не удалось загрузить роли",
+    deleteDialogTitle: "Удалить роль?",
+    deleteDialogBody: "Роль «{{name}}» будет удалена безвозвратно.",
+    deleteError: "Не удалось удалить роль",
+  },
+  roleForm: {
+    nameRequired: "Введите имя",
+    saveError: "Не удалось сохранить роль",
   },
   ldapServers: {
     title: "LDAP-серверы",

@@ -64,6 +64,17 @@ export default {
     title: "Roles",
     createTitle: "Create role",
     editTitle: "Edit role",
+    name: "Name",
+    description: "Description",
+    empty: "No roles",
+    loadError: "Failed to load roles",
+    deleteDialogTitle: "Delete role?",
+    deleteDialogBody: 'Role "{{name}}" will be permanently deleted.',
+    deleteError: "Failed to delete role",
+  },
+  roleForm: {
+    nameRequired: "Enter name",
+    saveError: "Failed to save role",
   },
   ldapServers: {
     title: "LDAP servers",
