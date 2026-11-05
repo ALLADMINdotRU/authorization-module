@@ -23,7 +23,7 @@ services:
       - pg_data:/var/lib/postgresql/data   # сохраняем данные (иначе сотрутся при пересоздании)
 
     healthcheck:                  # проверка готовности БД
-      test: ["CMD-SHELL", "pg_isready -U user_test"]   # готова ли БД принимать подключения
+      test: ["CMD-SHELL", "pg_isready -U user_test -d db_test2"]   # готова ли БД принимать подключения
       interval: 5s                #   проверять каждые 5 сек
       timeout: 5s                 #   таймаут ответа
       retries: 5                  #   попыток, прежде чем «не готова»
