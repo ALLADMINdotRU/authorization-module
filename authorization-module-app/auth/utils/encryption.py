@@ -2,6 +2,7 @@
 import base64
 import os
 from cryptography.fernet import Fernet
+from config import settings
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class SimpleEncryptionService:
         Ключ должен быть в base64 (как генерирует Fernet.generate_key()).
         Если не задан — генерируем новый (с предупреждением в лог).
         """
-        key = os.environ.get('ENCRYPTION_KEY')
+        key = settings.ENCRYPTION_KEY       # Берем значение из конфиг файла
         if not key:
             # Генерируем временный ключ — старые пароли не расшифруются
             key = Fernet.generate_key()

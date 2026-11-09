@@ -190,6 +190,16 @@ class LDAPServerNotFound(AuthError):
         )
 
 
+class LDAPConnectionFailed(AuthError):
+    """Не удалось подключиться к LDAP-серверу."""
+    def __init__(self, detail: str):
+        super().__init__(
+            detail=detail,                     # причина: «Не удалось подключиться к dc01...»
+            status_code=400,                   # или 502 Bad Gateway
+            code="ldap_connection_failed",
+        )
+
+
 # ═══════════════════════════════════════════════════════════════
 # ОБРАБОТЧИК И РЕГИСТРАЦИЯ
 # ═══════════════════════════════════════════════════════════════

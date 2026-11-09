@@ -28,7 +28,7 @@ from logging.handlers import RotatingFileHandler
 # ═══════════════════════════════════════════════════════════════
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
     handlers=[
         logging.StreamHandler(),                                  # консоль

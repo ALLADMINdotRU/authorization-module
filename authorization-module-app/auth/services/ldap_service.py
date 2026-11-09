@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User, Role, LDAPServer
-from ..exceptions import LDAPServerAlreadyExists
+from ..exceptions import LDAPServerAlreadyExists, LDAPConnectionFailed
 
 from ..ldap import (
     LDAPConfig,
@@ -53,6 +53,11 @@ def build_ldap_config(server: LDAPServer, username: str = None, password: str = 
     server_url = server.host
     if server.port and server.port not in (389, 636):
         server_url = f"{server_url}:{server.port}"
+
+    logger.debug(
+        "LDAP config: url=%s, user=%s, base_dn=%s, ssl=%s",
+        server_url, ldap_user, server.base_dn, server.use_ssl,
+    )
 
     return LDAPConfig(
         server_url=server_url,
@@ -94,7 +99,9 @@ def _authenticate_ldap_sync(server: LDAPServer, username: str, password: str) ->
     except (LDAPBindError, LDAPConnectionError) as e:
         logger.warning(f"LDAP-аутентификация не удалась: {e}")
         return False
-
+    except Exception as e:                       # ← ловим ВСЁ остальное
+        logger.error(f"Неожиданная ошибка LDAP: {type(e).__name__}: {e}")
+        return False
 
 # ═══════════════════════════════════════════════════════════════
 # СИНХРОННЫЙ ПОИСК ПОЛЬЗОВАТЕЛЯ (для получения данных из LDAP)
@@ -128,6 +135,8 @@ async def authenticate_ldap(db: AsyncSession, username_input: str, password: str
 
     # 2. Активные серверы
     servers = await get_active_servers(db)
+    logger.debug("Активных LDAP-серверов: %d", len(servers))
+    
     if not servers:
         logger.warning("Нет активных LDAP-серверов")
         return None
@@ -516,19 +525,15 @@ async def test_connection(db: AsyncSession, server: LDAPServer,) -> tuple[bool, 
     """
     loop = asyncio.get_running_loop()
 
-    try:
-        # Запускаем синхронную проверку в отдельном потоке
-        ok = await loop.run_in_executor(
-            None,                  # None = стандартный пул потоков
-            _test_connection_sync,  # синхронная функция
-            server,                # её аргумент
-        )
-        if ok:
-            return True, "Подключение успешно"
-        return False, "Не удалось подключиться"
-
-    except Exception as e:
-        return False, f"Ошибка: {e}"
+    # Запускаем синхронную проверку в отдельном потоке
+    ok, error_text = await loop.run_in_executor(
+        None,                  # None = стандартный пул потоков
+        _test_connection_sync,  # синхронная функция
+        server,                # её аргумент
+    )
+    if not ok:
+        raise LDAPConnectionFailed(error_text)   # → уйдёт в auth_error_handler
+    return {"success": True, "message": "Подключение успешно"}
 
 
 def _test_connection_sync(server: LDAPServer) -> bool:
@@ -548,7 +553,11 @@ def _test_connection_sync(server: LDAPServer) -> bool:
         # with LDAPConnection(config) — открываем соединение
         # conn.is_connected — проверяем что bind прошёл
         with LDAPConnection(config) as conn:
-            return conn.is_connected
-    except (LDAPBindError, LDAPConnectionError):
+            return conn.is_connected, "Подключение успешно"
+    except (LDAPBindError, LDAPConnectionError) as e:
         # Неверные учётки или сервер недоступен
-        return False
+        logger.error("Ошибка подключения к LDAP (%s): %s", config.server_url, e)
+        return False, f"Ошибка: {e}"
+    except Exception as e:
+        logger.error("Неожиданная ошибка LDAP: %s: %s", type(e).__name__, e)
+        return False, f"Ошибка: {e}"

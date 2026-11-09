@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_KEY_FUNC: str = "ip"                  # "ip" | "username" | "ip+username"
     
     # ── Логирование ──
-    LOG_LEVEL: str = "INFO"                          # DEBUG, INFO, WARNING, ERROR
+    LOG_LEVEL: str = "DEBUG"                          # DEBUG, INFO, WARNING, ERROR
     # ── Отладка ──
     DEBUG: bool = True                               # True = отдавать причину ошибки на фронтенд (только для разработки)
 

@@ -32,4 +32,4 @@ def setup_logging(level: str = "INFO"):
     """
 
     logger = logging.getLogger("auth")                                          # Получаем (или создаём) логгер с именем "auth"
-    logger.setLevel(getattr(logging, level.upper(), logging.INFO))              # Задаём уровень логирования, по умолчанию INFO
+    logger.setLevel(getattr(logging, level.upper(), logging.INFO))              # Задаём уровень логирования (берется из level), по умолчанию INFO
