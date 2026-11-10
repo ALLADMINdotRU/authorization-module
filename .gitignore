@@ -18,6 +18,7 @@ logs/
 заметки.txt
 test.txt
 requirements2.txt
+code-style.md
 
 # ── IDE ──
 .idea/

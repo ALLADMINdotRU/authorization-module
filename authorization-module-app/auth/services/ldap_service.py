@@ -363,22 +363,34 @@ async def get_all_servers(
         db: AsyncSession,
         page: int = 1,
         limit: int = 20,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         ) -> tuple[list[LDAPServer], int]:
     """
     Получить ВСЕ LDAP-серверы (включая неактивные) + общее количество.
 
     (включая неактивные — админ должен видеть и отключенные серверы)
 
+    Args:
+        db: сессия БД
+        page: номер страницы (начиная с 1)
+        limit: размер страницы
+        sort_by: поле сортировки — любая колонка таблицы ldap_servers ("id", "name", "host", "port", "priority", ...)
+        sort_order: направление — "asc" или "desc"
     Returns:
         (items, total)
     """
     # ── 1. Общее количество ──
     total = (await db.execute(select(func.count()).select_from(LDAPServer))).scalar() or 0
 
-    # ── 2. Страница (сортировка по приоритету) ──
+    # ── 2. Сортировка (безопасно: только реальные колонки) ──
+    column = LDAPServer.__table__.columns.get(sort_by, LDAPServer.__table__.columns["id"])
+    order = column.desc() if sort_order.lower() == "desc" else column.asc()
+
+    # ── 3. Страница (сортировка по приоритету) ──
     query = (
         select(LDAPServer)
-        .order_by(LDAPServer.priority)
+        .order_by(order)
         .offset((page - 1) * limit)
         .limit(limit)
     )

@@ -37,11 +37,19 @@ async def list_roles(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1, description="Номер страницы (с 1)"),
     limit: int = Query(20, ge=1, le=100, description="Размер страницы (1–100)"),
+    sort_by: str = Query("id", description="Поле сортировки"),
+    sort_order: str = Query("asc", description="Направление сортировки: asc | desc"),
     _admin: User = Depends(admin_required)):
     """
     Получить список всех ролей с пагинацией.
     """
-    items, total = await role_service.get_all_roles(db, page=page, limit=limit)
+    items, total = await role_service.get_all_roles(
+        db, 
+        page=page, 
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        )
 
     pages = (total + limit - 1) // limit
 

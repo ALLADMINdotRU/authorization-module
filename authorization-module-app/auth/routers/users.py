@@ -26,6 +26,8 @@ async def list_users(
     include_deleted: bool = Query(True, description="Показывать удалённых пользователей"),
     page: int = Query(1, ge=1, description="Номер страницы (с 1)"),
     limit: int = Query(20, ge=1, le=100, description="Размер страницы (1–100)"),
+    sort_by: str = Query("id", description="Поле сортировки"),
+    sort_order: str = Query("asc", description="Направление сортировки: asc | desc"),
     db: AsyncSession = Depends(get_db), 
     _admin: User = Depends(admin_required),
     ):
@@ -38,6 +40,7 @@ async def list_users(
     Примеры:
         ?page=1&limit=20          → 1-я страница по 20
         ?include_deleted=true     → включая удалённых
+        ?sort_by=id&sort_order=desc     → сортировка по ID по убыванию
     """
 
     # Сервис возвращает (элементы страницы, общее количество)
@@ -46,6 +49,8 @@ async def list_users(
         include_deleted=include_deleted,
         page=page,
         limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
     # pages — сколько всего страниц = total / limit с округлением ВВЕРХ.

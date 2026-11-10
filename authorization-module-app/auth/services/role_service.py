@@ -28,9 +28,18 @@ async def get_all_roles(
         db: AsyncSession,
         page: int = 1,
         limit: int = 20,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         ) -> tuple[list[Role], int]:
     """
     Возвращает страницу ролей + общее количество.
+
+    Args:
+        db: сессия БД
+        page: номер страницы (начиная с 1)
+        limit: размер страницы
+        sort_by: поле сортировки — любая колонка таблицы roles ("id", "name", "description")
+        sort_order: направление — "asc" или "desc"
 
     Returns:
         (items, total)
@@ -39,10 +48,14 @@ async def get_all_roles(
     # ── 1. Общее количество ──
     total = (await db.execute(select(func.count()).select_from(Role))).scalar() or 0
 
-    # ── 2. Страница ──
+    # ── 2. Сортировка (безопасно: только реальные колонки) ──
+    column = Role.__table__.columns.get(sort_by, Role.__table__.columns["id"])
+    order = column.desc() if sort_order.lower() == "desc" else column.asc()
+
+    # ── 3. Страница ──
     query = (
         select(Role)
-        .order_by(Role.name)
+        .order_by(order)
         .offset((page - 1) * limit)
         .limit(limit)
     )

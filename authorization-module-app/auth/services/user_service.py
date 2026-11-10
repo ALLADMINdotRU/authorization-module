@@ -19,7 +19,9 @@ async def get_all_users(
         db: AsyncSession, 
         include_deleted: bool = True,
         page: int = 1,
-        limit: int = 20,        
+        limit: int = 20,
+        sort_by: str = "id",
+        sort_order: str = "asc",
         ) -> tuple[list[User], int]:
     """
     Возвращает ОДНУ страницу пользователей + общее количество.
@@ -29,6 +31,8 @@ async def get_all_users(
         include_deleted: True = показать и удалённых, False = только активные
         page: номер страницы (начиная с 1)
         limit: размер страницы (сколько записей взять)
+        sort_by: поле сортировки — любая колонка таблицы users ("id", "username", "email", "created_at", ...)
+        sort_order: направление — "asc" (возрастание) или "desc" (убывание)
 
     Returns:
         кортеж (items, total):
@@ -43,8 +47,15 @@ async def get_all_users(
 
     total = (await db.execute(count_query)).scalar() or 0
 
-    # ── 2. Выбираем ТОЛЬКО нужную страницу ──
-    query = select(User).order_by(User.username)
+    # ── 2. Сортировка ──
+    # Безопасно: берём колонку ПО ИМЕНИ из таблицы. Если поля нет —
+    # fallback на "id". Подставлять строку из запроса прямо в
+    # order_by нельзя (SQL-инъекция), поэтому ищем через __table__.columns.
+    column = User.__table__.columns.get(sort_by, User.__table__.columns["id"])
+    order = column.desc() if sort_order.lower() == "desc" else column.asc()
+
+    # ── 3. Выбираем ТОЛЬКО нужную страницу ──
+    query = select(User).order_by(order)
     if not include_deleted:
         query = query.where(~User.is_deleted)
 
