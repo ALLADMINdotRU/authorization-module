@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     # ── Отладка ──
     DEBUG: bool = True                               # True = отдавать причину ошибки на фронтенд (только для разработки)
 
+    # ── Фотографии пользователей ──
+    PHOTO_UPLOAD_DIR: str = "uploads/photos"         # куда складывать файлы (папка относительно корня приложения)
+    PHOTO_MAX_SIZE_MB: int = 5                       # лимит размера ИСХОДНИКА (MB) — больше не примем
+    PHOTO_AVATAR_SIZE: int = 96                      # размер аватара (px), квадрат 96×96
+    PHOTO_PROFILE_SIZE: int = 512                    # размер фото профиля (px), до 512×512
+    PHOTO_AVATAR_QUALITY: int = 80                   # качество WebP аватара (0–100)
+    PHOTO_PROFILE_QUALITY: int = 85                  # качество WebP профиля (0–100)
+    
     # ── Настройки Pydantic ──
     # model_config говорит Pydantic откуда читать переменные
     model_config = {

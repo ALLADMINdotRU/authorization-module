@@ -24,3 +24,5 @@ code-style.md
 .idea/
 .vscode/
 
+# ── Загруженные файлы ──
+uploads/

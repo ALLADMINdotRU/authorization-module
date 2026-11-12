@@ -82,13 +82,14 @@ class AuthModule:
 
         # Импортируем роутеры ПОСЛЕ настройки rate limiting
         # (декораторы @limiter.limit() в них должны видеть готовый limiter)
-        from .routers import auth, users, roles, ldap_servers
+        from .routers import auth, users, roles, ldap_servers, photos
 
         # Подключаем роутеры модуля
         self.router.include_router(auth.router)
         self.router.include_router(users.router)
         self.router.include_router(roles.router)
         self.router.include_router(ldap_servers.router)
+        self.router.include_router(photos.router)
         
         self._initialized = True
 

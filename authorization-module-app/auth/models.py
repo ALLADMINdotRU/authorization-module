@@ -123,6 +123,9 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     auth_method: Mapped[str] = mapped_column(String(20), default="local")  # 'local' | 'ldap'
 
+    # ── Фотография ──
+    photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))  # None = фото нет
+
     # ── Мягкое удаление ──
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -157,6 +160,15 @@ class User(Base):
             password.encode("utf-8"),
             self.password_hash.encode("utf-8"),
         )
+
+    # ── Фотография ──
+    def clear_photo(self) -> None:
+        """Сбросить метку фото (фото удалено или отсутствует на диске)."""
+        self.photo_updated_at = None
+
+    def mark_photo_updated(self) -> None:
+        """Отметить, что фото обновлено (вызвать при сохранении)."""
+        self.photo_updated_at = datetime.now(timezone.utc)
 
     # ── Методы ролей ──
     def has_role(self, role_name: str) -> bool:

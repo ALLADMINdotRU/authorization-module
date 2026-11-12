@@ -5,15 +5,16 @@
 Роуты управления пользователями (только для админов).
 """
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..deps import get_db
 from ..models import User
-from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate, Page
+from ..schemas import UserCreate, UserRead, UserAdminRead, UserUpdate, Page, PhotoRead
 from ..security import admin_required
-from ..services import user_service
-from ..exceptions import UserNotFound, UserNotDeleted
+from ..services import user_service, photo_service
+from ..exceptions import UserNotFound, UserNotDeleted, InvalidPhoto
+
 
 router = APIRouter(prefix="/admin/rest/users", tags=["admin-users"])
 
@@ -120,3 +121,47 @@ async def restore_user(user_id: int, db: AsyncSession = Depends(get_db), _admin:
         raise UserNotFound(user_id)
 
     return await user_service.restore_user(db, user)
+
+
+# ═══════════════════════════════════════════════════════════════
+# ФОТОГРАФИЯ ПОЛЬЗОВАТЕЛЯ (загрузка и удаление — только админ)
+# ═══════════════════════════════════════════════════════════════
+@router.post("/{user_id}/photo", response_model=PhotoRead)
+async def upload_photo(
+    user_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(admin_required),
+):
+    """
+    Загрузить фото пользователя (multipart/form-data, поле file).
+
+    Принимает обрезанный фронтом квадрат, сохраняет в двух размерах:
+    avatar (96×96) и profile (512×512), обе в WebP.
+    """
+    user = await user_service.get_user_by_id(db, user_id)
+    if not user:
+        raise UserNotFound(user_id)
+
+    raw = await file.read()                       # читаем байты файла
+    try:
+        await photo_service.save_photo(db, user, raw)
+    except ValueError as e:
+        raise InvalidPhoto(str(e))                # файл не картинка / слишком большой
+
+    return PhotoRead(has_photo=True, url=f"/auth/users/{user_id}/photo?size=avatar")
+
+
+@router.delete("/{user_id}/photo", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_photo(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(admin_required),
+):
+    """Удалить фото пользователя."""
+    user = await user_service.get_user_by_id(db, user_id)
+    if not user:
+        raise UserNotFound(user_id)
+
+    await photo_service.delete_photo(db, user)
+    return None   # 204 No Content
