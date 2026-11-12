@@ -24,6 +24,7 @@ import { Link } from "react-router-dom"
 import type { UserProfile } from "../../../entities/user"
 import { useMeQuery } from "../../../features/auth"
 import { PageHeader } from "../../../shared/ui/page-header"
+import { AvatarCropDialog } from "./AvatarCropDialog"
 
 type ProfileField = readonly [label: string, value: string | number | null]
 
@@ -108,35 +109,19 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
   const { t, i18n } = useTranslation()
   const avatarInput = useRef<HTMLInputElement>(null)
   const [avatarFile, setAvatarFile] = useState<File>()
-  const [avatarPreview, setAvatarPreview] = useState<{
-    file: File
-    url?: string
-  }>()
+  const [avatar, setAvatar] = useState<Blob>()
+  const [avatarUrl, setAvatarUrl] = useState<string>()
 
   useEffect(() => {
-    if (!avatarFile) return
+    if (!avatar) return
 
-    const url = URL.createObjectURL(avatarFile)
-    const image = new Image()
-    image.src = url
-    let cancelled = false
-
-    void image.decode().then(
-      () => {
-        if (!cancelled) setAvatarPreview({ file: avatarFile, url })
-      },
-      () => {
-        if (!cancelled) setAvatarPreview({ file: avatarFile })
-      },
-    )
-
+    const url = URL.createObjectURL(avatar)
+    setAvatarUrl(url)
     return () => {
-      cancelled = true
       URL.revokeObjectURL(url)
     }
-  }, [avatarFile])
+  }, [avatar])
 
-  const preview = avatarPreview?.file === avatarFile ? avatarPreview : undefined
   const fullName = user.full_name?.trim() ?? ""
   const displayName = fullName || user.username
   const initials = displayName
@@ -162,7 +147,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
           avatar={
             <Avatar
               aria-hidden="true"
-              src={preview?.url}
+              src={avatarUrl}
               sx={{
                 width: { xs: 52, sm: 64 },
                 height: { xs: 52, sm: 64 },
@@ -214,9 +199,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
                 startIcon={<PhotoCameraOutlinedIcon />}
                 onClick={() => avatarInput.current?.click()}
               >
-                {t(
-                  preview?.url ? "profile.changePhoto" : "profile.choosePhoto",
-                )}
+                {t(avatar ? "profile.changePhoto" : "profile.choosePhoto")}
               </Button>
               <input
                 ref={avatarInput}
@@ -229,11 +212,6 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
                   event.currentTarget.value = ""
                 }}
               />
-              {preview && !preview.url && (
-                <Typography variant="caption" color="error" role="alert">
-                  {t("profile.photoError")}
-                </Typography>
-              )}
             </Stack>
           }
           disableTypography
@@ -299,6 +277,18 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
           ]}
         />
       </Box>
+      {avatarFile && (
+        <AvatarCropDialog
+          file={avatarFile}
+          onCancel={() => {
+            setAvatarFile(undefined)
+          }}
+          onApply={croppedAvatar => {
+            setAvatar(croppedAvatar)
+            setAvatarFile(undefined)
+          }}
+        />
+      )}
     </Stack>
   )
 }
