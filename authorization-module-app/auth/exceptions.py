@@ -130,6 +130,25 @@ class UserNotDeleted(AuthError):
         )
 
 
+class PhotoNotFound(AuthError):
+    """Фото пользователя не найдено."""
+    def __init__(self):
+        super().__init__(
+            detail="Фотография не найдена",
+            status_code=404,
+            code="photo_not_found",
+        )
+
+
+class InvalidPhoto(AuthError):
+    """Загруженный файл не является корректным изображением."""
+    def __init__(self, detail: str = "Некорректный файл изображения"):
+        super().__init__(
+            detail=detail,
+            status_code=400,
+            code="invalid_photo",
+        )
+
 
 # ═══════════════════════════════════════════════════════════════
 # ОШИБКИ, СВЯЗАННЫЕ С РОЛЯМИ

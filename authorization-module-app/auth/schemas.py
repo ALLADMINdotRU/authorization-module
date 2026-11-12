@@ -61,6 +61,12 @@ class RoleUpdate(ORMModel):
     description: str | None = None
 
 
+class PhotoRead(ORMModel):
+    """Информация о фото пользователя (ответ при загрузке)."""
+    has_photo: bool            # есть ли теперь фото (True/False)
+    url: str | None = None     # ссылка на аватар (или None, если фото нет)
+
+
 # ═══════════════════════════════════════════════════════════════
 # СХЕМЫ ПОЛЬЗОВАТЕЛЯ
 # ═══════════════════════════════════════════════════════════════
@@ -96,6 +102,7 @@ class UserRead(ORMModel):
     is_active: bool
     auth_method: str
     created_at: datetime
+    photo_updated_at: datetime | None = None   # время последней загрузки фото (None = фото нет)
 
 class UserAdminRead(UserRead):
     """
@@ -190,4 +197,3 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     """Данные, зашитые в JWT-токене."""
     username: str | None = None
-    
