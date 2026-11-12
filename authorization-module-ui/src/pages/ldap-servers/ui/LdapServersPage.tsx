@@ -35,6 +35,7 @@ import {
   useTestLdapServerMutation,
 } from "../../../entities/ldap-server"
 import type { LdapServer } from "../../../entities/ldap-server"
+import { getApiErrorDetail } from "../../../shared/api/baseApi"
 import { showNotification } from "../../../shared/notifications"
 import { PageHeader } from "../../../shared/ui/page-header"
 
@@ -133,24 +134,23 @@ export const LdapServersPage = () => {
   }
 
   const handleTest = async (server: LdapServer) => {
-    try {
-      const result = await testServer(server.id).unwrap()
-      dispatch(
-        showNotification({
-          message: result.success
-            ? t("ldapServers.testSuccess")
-            : t("ldapServers.testFailure"),
-          severity: result.success ? "success" : "error",
-        }),
-      )
-    } catch {
-      dispatch(
-        showNotification({
-          message: t("ldapServers.testFailure"),
-          severity: "error",
-        }),
-      )
-    }
+    const { data, error } = await testServer(server.id)
+    const success = data?.success === true
+    const detail = getApiErrorDetail(error && "data" in error && error.data)
+    const message = data?.message
+
+    dispatch(
+      showNotification({
+        message:
+          detail ??
+          (message?.trim()
+            ? message
+            : t(
+                success ? "ldapServers.testSuccess" : "ldapServers.testFailure",
+              )),
+        severity: success ? "success" : "error",
+      }),
+    )
   }
 
   return (

@@ -1,9 +1,13 @@
 import type { Action, ThunkAction } from "@reduxjs/toolkit"
-import { combineSlices, configureStore } from "@reduxjs/toolkit"
+import {
+  combineSlices,
+  configureStore,
+  createListenerMiddleware,
+} from "@reduxjs/toolkit"
 import { setupListeners } from "@reduxjs/toolkit/query"
-import { authSlice } from "../features/auth"
+import { authSlice, clearUser } from "../features/auth"
 import { baseApi } from "../shared/api/baseApi"
-import { notificationsSlice } from "../shared/notifications"
+import { clearNotification, notificationsSlice } from "../shared/notifications"
 
 // `combineSlices` automatically combines the reducers using
 // their `reducerPath`s, therefore we no longer need to call `combineReducers`.
@@ -14,12 +18,23 @@ export type RootState = ReturnType<typeof rootReducer>
 // The store setup is wrapped in `makeStore` to allow reuse
 // when setting up tests that need the same store config
 export const makeStore = (preloadedState?: Partial<RootState>) => {
+  const sessionListener = createListenerMiddleware()
+  sessionListener.startListening({
+    actionCreator: clearUser,
+    effect: (_action, { dispatch }) => {
+      dispatch(baseApi.util.resetApiState())
+      dispatch(clearNotification())
+    },
+  })
+
   const store = configureStore({
     reducer: rootReducer,
     // Adding the api middleware enables caching, invalidation, polling,
     // and other useful features of `rtk-query`.
     middleware: getDefaultMiddleware => {
-      return getDefaultMiddleware().concat(baseApi.middleware)
+      return getDefaultMiddleware()
+        .prepend(sessionListener.middleware)
+        .concat(baseApi.middleware)
     },
     preloadedState,
   })

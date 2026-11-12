@@ -538,17 +538,17 @@ async def test_connection(db: AsyncSession, server: LDAPServer,) -> tuple[bool, 
     loop = asyncio.get_running_loop()
 
     # Запускаем синхронную проверку в отдельном потоке
-    ok, error_text = await loop.run_in_executor(
+    ok, message = await loop.run_in_executor(
         None,                  # None = стандартный пул потоков
         _test_connection_sync,  # синхронная функция
         server,                # её аргумент
     )
     if not ok:
-        raise LDAPConnectionFailed(error_text)   # → уйдёт в auth_error_handler
-    return {"success": True, "message": "Подключение успешно"}
+        raise LDAPConnectionFailed(message)   # → уйдёт в auth_error_handler
+    return ok, message
 
 
-def _test_connection_sync(server: LDAPServer) -> bool:
+def _test_connection_sync(server: LDAPServer) -> tuple[bool, str]:
     """
     Синхронная проверка подключения.
 
@@ -556,7 +556,7 @@ def _test_connection_sync(server: LDAPServer) -> bool:
     пока идёт LDAP-запрос. Поэтому вызывается через run_in_executor.
 
     Returns:
-        bool — True если подключение (bind) успешно
+        tuple[bool, str] — результат подключения и сообщение
     """
     # Строим конфиг из модели (используем bind-учётку сервера)
     config = build_ldap_config(server)

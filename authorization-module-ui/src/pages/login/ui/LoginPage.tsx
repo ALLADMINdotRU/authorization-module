@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { useAppDispatch } from "../../../app/hooks"
 import { LanguageSwitcher } from "../../../shared/ui/language-switcher"
 import {
+  clearUser,
   setUser,
   useLazyMeQuery,
   useLoginMutation,
@@ -15,8 +16,9 @@ export const LoginPage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
-  const [login, { isLoading, error }] = useLoginMutation()
-  const [getMe] = useLazyMeQuery()
+  const [login, { isLoading: isLoggingIn, error }] = useLoginMutation()
+  const [getMe, { isFetching: isFetchingProfile }] = useLazyMeQuery()
+  const isSubmitting = isLoggingIn || isFetchingProfile
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -24,6 +26,7 @@ export const LoginPage = () => {
   const handleLogin = async () => {
     try {
       await login({ username, password }).unwrap()
+      dispatch(clearUser())
       const user = await getMe(undefined).unwrap()
       dispatch(setUser(user))
       await navigate("/main")
@@ -34,7 +37,9 @@ export const LoginPage = () => {
 
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
-    void handleLogin()
+    if (!isSubmitting) {
+      void handleLogin()
+    }
   }
 
   return (
@@ -80,7 +85,7 @@ export const LoginPage = () => {
         {error && (
           <Typography color="error">{t("login.invalidCredentials")}</Typography>
         )}
-        <Button type="submit" variant="contained" disabled={isLoading}>
+        <Button type="submit" variant="contained" disabled={isSubmitting}>
           {t("common.login")}
         </Button>
       </Box>
