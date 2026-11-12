@@ -1,6 +1,6 @@
 import type { ListSort } from "../../../shared/api/types"
 
-export type User = {
+export type UserProfile = {
   id: number
   username: string
   email: string | null
@@ -14,6 +14,9 @@ export type User = {
   is_active: boolean
   auth_method: string
   created_at: string
+}
+
+export type User = UserProfile & {
   is_deleted: boolean
   deleted_at: string | null
   deleted_by: number | null

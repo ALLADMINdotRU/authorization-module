@@ -1,5 +1,5 @@
 import { baseApi } from "../../../shared/api/baseApi"
-import type { User } from "../../../entities/user/model/types"
+import type { UserProfile } from "../../../entities/user/model/types"
 import type { LoginRequest } from "../model/types"
 
 export const authApi = baseApi.injectEndpoints({
@@ -16,7 +16,7 @@ export const authApi = baseApi.injectEndpoints({
         }).toString(),
       }),
     }),
-    me: build.query<User, undefined>({
+    me: build.query<UserProfile, undefined>({
       query: () => ({ url: "/auth/me", method: "GET" }),
     }),
     logout: build.mutation<undefined, undefined>({

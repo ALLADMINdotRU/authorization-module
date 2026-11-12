@@ -1,18 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit"
 import type { PayloadAction } from "@reduxjs/toolkit"
 import type { RootState } from "../../../app/store"
-import type { User } from "../../../entities/user/model/types"
+import type { UserProfile } from "../../../entities/user/model/types"
 
 const USER_STORAGE_KEY = "auth_user"
 
 type AuthState = {
-  user: User | null
+  user: UserProfile | null
 }
 
-const getStoredUser = (): User | null => {
+const getStoredUser = (): UserProfile | null => {
   try {
     const stored = sessionStorage.getItem(USER_STORAGE_KEY)
-    return stored ? (JSON.parse(stored) as User) : null
+    return stored ? (JSON.parse(stored) as UserProfile) : null
   } catch {
     return null
   }
@@ -26,7 +26,7 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User>) => {
+    setUser: (state, action: PayloadAction<UserProfile>) => {
       state.user = action.payload
       sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(action.payload))
     },

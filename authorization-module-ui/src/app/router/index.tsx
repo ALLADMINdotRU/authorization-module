@@ -3,6 +3,7 @@ import { RequireAuth } from "../../features/auth"
 import { LdapServerFormPage, LdapServersPage } from "../../pages/ldap-servers"
 import { LoginPage } from "../../pages/login"
 import { MainPage } from "../../pages/main"
+import { ProfilePage } from "../../pages/profile"
 import { RoleFormPage, RolesPage } from "../../pages/roles"
 import { UserFormPage, UsersPage } from "../../pages/users"
 
@@ -21,6 +22,10 @@ export const router = createBrowserRouter([
       {
         path: "/main",
         element: <MainPage />,
+      },
+      {
+        path: "/profile",
+        element: <ProfilePage />,
       },
       {
         path: "/users",

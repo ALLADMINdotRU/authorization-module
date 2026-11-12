@@ -33,6 +33,7 @@ export default {
   },
   navigation: {
     home: "Home",
+    profile: "Profile",
     users: "Users",
     roles: "Roles",
     ldapServers: "LDAP servers",
@@ -40,6 +41,16 @@ export default {
   login: {
     title: "Authorization module",
     invalidCredentials: "Invalid username or password",
+  },
+  profile: {
+    choosePhoto: "Choose photo",
+    changePhoto: "Change photo",
+    photoError: "Couldn't open the image",
+    status: "Status",
+    contacts: "Contact details",
+    work: "Work details",
+    localAuth: "Local account",
+    loadError: "Failed to load profile",
   },
   users: {
     title: "Users",

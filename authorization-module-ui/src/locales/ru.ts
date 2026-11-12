@@ -33,6 +33,7 @@ export default {
   },
   navigation: {
     home: "Главная",
+    profile: "Профиль",
     users: "Пользователи",
     roles: "Роли",
     ldapServers: "LDAP-серверы",
@@ -40,6 +41,16 @@ export default {
   login: {
     title: "Модуль авторизации",
     invalidCredentials: "Неверный логин или пароль",
+  },
+  profile: {
+    choosePhoto: "Выбрать фото",
+    changePhoto: "Сменить фото",
+    photoError: "Не удалось открыть изображение",
+    status: "Статус",
+    contacts: "Контакты",
+    work: "Рабочие данные",
+    localAuth: "Локальная учётная запись",
+    loadError: "Не удалось загрузить профиль",
   },
   users: {
     title: "Пользователи",
