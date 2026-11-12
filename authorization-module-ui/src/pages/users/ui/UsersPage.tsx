@@ -7,7 +7,6 @@ import {
   CardContent,
   Checkbox,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -35,8 +34,26 @@ import {
   useListUsersQuery,
   useRestoreUserMutation,
 } from "../../../entities/user"
-import type { User } from "../../../entities/user"
+import type { User, UserSortField } from "../../../entities/user"
+import {
+  ListProgress,
+  ListSortControls,
+  SortableTableCell,
+  useListSort,
+} from "../../../shared/ui/list-sort"
 import { PageHeader } from "../../../shared/ui/page-header"
+
+const tableFields = [
+  "id",
+  "username",
+  "full_name",
+  "email",
+  "company",
+  "department",
+  "position",
+  "is_active",
+  "deleted_at",
+] as const satisfies readonly UserSortField[]
 
 type UserActionsProps = {
   user: User
@@ -96,26 +113,53 @@ export const UsersPage = () => {
   const [showDeleted, setShowDeleted] = useState(false)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const { data, error, isLoading } = useListUsersQuery({
+  const { sort, sortBy } = useListSort<UserSortField>("id", () => {
+    setPage(1)
+  })
+  const {
+    data: lastData,
+    currentData,
+    error,
+    isFetching,
+  } = useListUsersQuery({
     include_deleted: showDeleted,
     page,
     limit,
+    ...sort,
   })
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation()
   const [restoreUser, { isLoading: isRestoring }] = useRestoreUserMutation()
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [deleteError, setDeleteError] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
+  const data = currentData ?? (isFetching ? lastData : undefined)
   const users = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
   const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"))
+  const sortLabels: Record<UserSortField, string> = {
+    id: "ID",
+    username: t("common.username"),
+    full_name: t("common.fullName"),
+    email: t("common.email"),
+    company: t("common.company"),
+    department: t("common.department"),
+    position: t("common.position"),
+    is_active: t("common.active"),
+    deleted_at: t("users.deletedAt"),
+    mobile_phone: t("userForm.mobilePhone"),
+    ip_phone: t("userForm.ipPhone"),
+    messenger: t("userForm.messenger"),
+    auth_method: t("userForm.authMethod"),
+    created_at: t("common.createdAt"),
+    is_deleted: t("common.deleted"),
+  }
 
   useEffect(() => {
-    if (data && data.pages > 0 && page > data.pages) {
-      setPage(data.pages)
+    if (currentData && currentData.pages > 0 && page > currentData.pages) {
+      setPage(currentData.pages)
     }
-  }, [data, page])
+  }, [currentData, page])
 
   const handleShowDeletedChange = (checked: boolean) => {
     setShowDeleted(checked)
@@ -188,11 +232,10 @@ export const UsersPage = () => {
         </Box>
       </Box>
 
-      {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
-        </Box>
+      {isMobile && (
+        <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
+      <ListProgress isFetching={isFetching} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -206,13 +249,13 @@ export const UsersPage = () => {
         </Typography>
       )}
 
-      {!isLoading && !error && users.length === 0 && (
+      {!isFetching && !error && users.length === 0 && (
         <Typography color="text.secondary">{t("users.empty")}</Typography>
       )}
 
       {users.length > 0 && isMobile && (
         <>
-          <Stack spacing={1}>
+          <Stack spacing={1} aria-busy={isFetching}>
             {users.map(user => (
               <Card key={user.id}>
                 <CardContent>
@@ -287,20 +330,20 @@ export const UsersPage = () => {
         </>
       )}
 
-      {users.length > 0 && !isMobile && (
+      {!isMobile && (users.length > 0 || isFetching) && (
         <TableContainer component={Paper}>
-          <Table size="small">
+          <Table size="small" aria-busy={isFetching}>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>{t("common.username")}</TableCell>
-                <TableCell>{t("common.fullName")}</TableCell>
-                <TableCell>{t("common.email")}</TableCell>
-                <TableCell>{t("common.company")}</TableCell>
-                <TableCell>{t("common.department")}</TableCell>
-                <TableCell>{t("common.position")}</TableCell>
-                <TableCell>{t("common.active")}</TableCell>
-                <TableCell>{t("users.deletedAt")}</TableCell>
+                {tableFields.map(field => (
+                  <SortableTableCell
+                    key={field}
+                    field={field}
+                    label={sortLabels[field]}
+                    sort={sort}
+                    onSort={sortBy}
+                  />
+                ))}
                 <TableCell>{t("common.actions")}</TableCell>
               </TableRow>
             </TableHead>

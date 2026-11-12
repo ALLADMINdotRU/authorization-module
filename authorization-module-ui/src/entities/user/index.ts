@@ -12,5 +12,6 @@ export type {
   Page,
   User,
   UserCreate,
+  UserSortField,
   UserUpdate,
 } from "./model/types"

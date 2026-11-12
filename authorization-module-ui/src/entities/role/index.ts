@@ -6,4 +6,10 @@ export {
   useUpdateRoleMutation,
   useDeleteRoleMutation,
 } from "./api/roleApi"
-export type { Role, RoleCreate, RoleUpdate, ListRolesArgs } from "./model/types"
+export type {
+  Role,
+  RoleCreate,
+  RoleSortField,
+  RoleUpdate,
+  ListRolesArgs,
+} from "./model/types"

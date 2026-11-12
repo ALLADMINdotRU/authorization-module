@@ -10,6 +10,7 @@ export {
 export type {
   LdapServer,
   LdapServerCreate,
+  LdapServerSortField,
   LdapServerUpdate,
   ListLdapServersArgs,
 } from "./model/types"

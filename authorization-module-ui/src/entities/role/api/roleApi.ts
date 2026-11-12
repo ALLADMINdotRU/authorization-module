@@ -12,10 +12,10 @@ const rolesListTag = { type: "Roles", id: "LIST" } as const
 export const roleApi = baseApi.injectEndpoints({
   endpoints: build => ({
     listRoles: build.query<Page<Role>, ListRolesArgs>({
-      query: ({ page = 1, limit = 20 }) => ({
+      query: ({ page = 1, limit = 20, sort_by, sort_order }) => ({
         url: "/auth/admin/rest/roles",
         method: "GET",
-        params: { page, limit },
+        params: { page, limit, sort_by, sort_order },
       }),
       providesTags: [rolesListTag],
     }),

@@ -14,10 +14,10 @@ type LdapServerTestResult = { success: boolean; message?: string }
 export const ldapServerApi = baseApi.injectEndpoints({
   endpoints: build => ({
     listLdapServers: build.query<Page<LdapServer>, ListLdapServersArgs>({
-      query: ({ page = 1, limit = 20 }) => ({
+      query: ({ page = 1, limit = 20, sort_by, sort_order }) => ({
         url: "/auth/admin/rest/ldap-servers",
         method: "GET",
-        params: { page, limit },
+        params: { page, limit, sort_by, sort_order },
       }),
       providesTags: [ldapServersListTag],
     }),

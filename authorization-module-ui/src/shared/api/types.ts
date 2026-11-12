@@ -5,3 +5,8 @@ export type Page<T> = {
   limit: number
   pages: number
 }
+
+export type ListSort<Field extends string> = {
+  sort_by: Field
+  sort_order: "asc" | "desc"
+}

@@ -5,7 +5,6 @@ import {
   Card,
   CardActions,
   CardContent,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -30,8 +29,16 @@ import {
   useDeleteRoleMutation,
   useListRolesQuery,
 } from "../../../entities/role"
-import type { Role } from "../../../entities/role"
+import type { Role, RoleSortField } from "../../../entities/role"
+import {
+  ListProgress,
+  ListSortControls,
+  SortableTableCell,
+  useListSort,
+} from "../../../shared/ui/list-sort"
 import { PageHeader } from "../../../shared/ui/page-header"
+
+const tableFields = ["id", "name", "description"] as const
 
 type RoleActionsProps = {
   role: Role
@@ -69,20 +76,38 @@ export const RolesPage = () => {
   const { t } = useTranslation()
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const { data, error, isLoading } = useListRolesQuery({ page, limit })
+  const { sort, sortBy } = useListSort<RoleSortField>("id", () => {
+    setPage(1)
+  })
+  const {
+    data: lastData,
+    currentData,
+    error,
+    isFetching,
+  } = useListRolesQuery({
+    page,
+    limit,
+    ...sort,
+  })
   const [deleteRole, { isLoading: isDeleting }] = useDeleteRoleMutation()
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
   const [deleteError, setDeleteError] = useState(false)
+  const data = currentData ?? (isFetching ? lastData : undefined)
   const roles = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
   const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"))
+  const sortLabels: Record<RoleSortField, string> = {
+    id: "ID",
+    name: t("roles.name"),
+    description: t("roles.description"),
+  }
 
   useEffect(() => {
-    if (data && data.pages > 0 && page > data.pages) {
-      setPage(data.pages)
+    if (currentData && currentData.pages > 0 && page > currentData.pages) {
+      setPage(currentData.pages)
     }
-  }, [data, page])
+  }, [currentData, page])
 
   const openDeleteDialog = (role: Role) => {
     setDeleteError(false)
@@ -128,11 +153,10 @@ export const RolesPage = () => {
         </Button>
       </Box>
 
-      {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
-        </Box>
+      {isMobile && (
+        <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
+      <ListProgress isFetching={isFetching} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -140,13 +164,13 @@ export const RolesPage = () => {
         </Typography>
       )}
 
-      {!isLoading && !error && roles.length === 0 && (
+      {!isFetching && !error && roles.length === 0 && (
         <Typography color="text.secondary">{t("roles.empty")}</Typography>
       )}
 
       {roles.length > 0 && isMobile && (
         <>
-          <Stack spacing={1}>
+          <Stack spacing={1} aria-busy={isFetching}>
             {roles.map(role => (
               <Card key={role.id}>
                 <CardContent>
@@ -176,14 +200,20 @@ export const RolesPage = () => {
         </>
       )}
 
-      {roles.length > 0 && !isMobile && (
+      {!isMobile && (roles.length > 0 || isFetching) && (
         <TableContainer component={Paper}>
-          <Table size="small">
+          <Table size="small" aria-busy={isFetching}>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>{t("roles.name")}</TableCell>
-                <TableCell>{t("roles.description")}</TableCell>
+                {tableFields.map(field => (
+                  <SortableTableCell
+                    key={field}
+                    field={field}
+                    label={sortLabels[field]}
+                    sort={sort}
+                    onSort={sortBy}
+                  />
+                ))}
                 <TableCell>{t("common.actions")}</TableCell>
               </TableRow>
             </TableHead>

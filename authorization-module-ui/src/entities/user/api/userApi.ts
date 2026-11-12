@@ -12,10 +12,16 @@ const usersListTag = { type: "Users", id: "LIST" } as const
 export const userApi = baseApi.injectEndpoints({
   endpoints: build => ({
     listUsers: build.query<Page<User>, ListUsersArgs>({
-      query: ({ include_deleted, page = 1, limit = 20 }) => ({
+      query: ({
+        include_deleted,
+        page = 1,
+        limit = 20,
+        sort_by,
+        sort_order,
+      }) => ({
         url: "/auth/admin/rest/users",
         method: "GET",
-        params: { include_deleted, page, limit },
+        params: { include_deleted, page, limit, sort_by, sort_order },
       }),
       providesTags: [usersListTag],
     }),

@@ -1,3 +1,5 @@
+import type { ListSort } from "../../../shared/api/types"
+
 export type User = {
   id: number
   username: string
@@ -34,7 +36,9 @@ export type UserCreate = {
 
 export type UserUpdate = Partial<UserCreate>
 
-export type ListUsersArgs = {
+export type UserSortField = Exclude<keyof User, "deleted_by">
+
+export type ListUsersArgs = Partial<ListSort<UserSortField>> & {
   include_deleted: boolean
   page?: number
   limit?: number

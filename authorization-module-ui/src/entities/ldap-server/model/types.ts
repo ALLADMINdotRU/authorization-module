@@ -1,3 +1,5 @@
+import type { ListSort } from "../../../shared/api/types"
+
 export type LdapServer = {
   id: number
   name: string
@@ -32,7 +34,9 @@ export type LdapServerCreate = {
 
 export type LdapServerUpdate = Partial<LdapServerCreate>
 
-export type ListLdapServersArgs = {
+export type LdapServerSortField = keyof LdapServer
+
+export type ListLdapServersArgs = Partial<ListSort<LdapServerSortField>> & {
   page?: number
   limit?: number
 }
