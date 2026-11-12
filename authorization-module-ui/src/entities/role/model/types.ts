@@ -1,3 +1,5 @@
+import type { ListSort } from "../../../shared/api/types"
+
 export type Role = {
   id: number
   name: string
@@ -11,7 +13,9 @@ export type RoleCreate = {
 
 export type RoleUpdate = Partial<RoleCreate>
 
-export type ListRolesArgs = {
+export type RoleSortField = keyof Role
+
+export type ListRolesArgs = Partial<ListSort<RoleSortField>> & {
   page?: number
   limit?: number
 }

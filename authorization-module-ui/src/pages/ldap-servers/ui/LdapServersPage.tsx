@@ -6,7 +6,6 @@ import {
   CardActions,
   CardContent,
   Chip,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -34,9 +33,29 @@ import {
   useListLdapServersQuery,
   useTestLdapServerMutation,
 } from "../../../entities/ldap-server"
-import type { LdapServer } from "../../../entities/ldap-server"
+import type {
+  LdapServer,
+  LdapServerSortField,
+} from "../../../entities/ldap-server"
+import { getApiErrorDetail } from "../../../shared/api/baseApi"
 import { showNotification } from "../../../shared/notifications"
+import {
+  ListProgress,
+  ListSortControls,
+  SortableTableCell,
+  useListSort,
+} from "../../../shared/ui/list-sort"
 import { PageHeader } from "../../../shared/ui/page-header"
+
+const tableFields = [
+  "id",
+  "name",
+  "host",
+  "port",
+  "use_ssl",
+  "priority",
+  "is_active",
+] as const satisfies readonly LdapServerSortField[]
 
 type LdapServerActionsProps = {
   server: LdapServer
@@ -92,22 +111,51 @@ export const LdapServersPage = () => {
   const dispatch = useAppDispatch()
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const { data, error, isLoading } = useListLdapServersQuery({ page, limit })
+  const { sort, sortBy } = useListSort<LdapServerSortField>("id", () => {
+    setPage(1)
+  })
+  const {
+    data: lastData,
+    currentData,
+    error,
+    isFetching,
+  } = useListLdapServersQuery({
+    page,
+    limit,
+    ...sort,
+  })
   const [deleteServer, { isLoading: isDeleting }] =
     useDeleteLdapServerMutation()
   const [testServer, { isLoading: isTesting }] = useTestLdapServerMutation()
   const [serverToDelete, setServerToDelete] = useState<LdapServer | null>(null)
   const [deleteError, setDeleteError] = useState(false)
+  const data = currentData ?? (isFetching ? lastData : undefined)
   const servers = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
   const isMobile = useMediaQuery(theme => theme.breakpoints.down("sm"))
+  const sortLabels: Record<LdapServerSortField, string> = {
+    id: "ID",
+    name: t("ldapServers.name"),
+    host: t("ldapServers.host"),
+    port: t("ldapServers.port"),
+    use_ssl: t("ldapServers.ssl"),
+    priority: t("ldapServers.priority"),
+    is_active: t("common.active"),
+    domain: t("ldapServerForm.domain"),
+    base_dn: t("ldapServerForm.baseDn"),
+    bind_username: t("ldapServerForm.bindUsername"),
+    search_filter: t("ldapServerForm.searchFilter"),
+    auto_login_enabled: t("ldapServerForm.autoLogin"),
+    created_at: t("common.createdAt"),
+    updated_at: t("common.updatedAt"),
+  }
 
   useEffect(() => {
-    if (data && data.pages > 0 && page > data.pages) {
-      setPage(data.pages)
+    if (currentData && currentData.pages > 0 && page > currentData.pages) {
+      setPage(currentData.pages)
     }
-  }, [data, page])
+  }, [currentData, page])
 
   const openDeleteDialog = (server: LdapServer) => {
     setDeleteError(false)
@@ -133,24 +181,23 @@ export const LdapServersPage = () => {
   }
 
   const handleTest = async (server: LdapServer) => {
-    try {
-      const result = await testServer(server.id).unwrap()
-      dispatch(
-        showNotification({
-          message: result.success
-            ? t("ldapServers.testSuccess")
-            : t("ldapServers.testFailure"),
-          severity: result.success ? "success" : "error",
-        }),
-      )
-    } catch {
-      dispatch(
-        showNotification({
-          message: t("ldapServers.testFailure"),
-          severity: "error",
-        }),
-      )
-    }
+    const { data, error } = await testServer(server.id)
+    const success = data?.success === true
+    const detail = getApiErrorDetail(error && "data" in error && error.data)
+    const message = data?.message
+
+    dispatch(
+      showNotification({
+        message:
+          detail ??
+          (message?.trim()
+            ? message
+            : t(
+                success ? "ldapServers.testSuccess" : "ldapServers.testFailure",
+              )),
+        severity: success ? "success" : "error",
+      }),
+    )
   }
 
   return (
@@ -174,11 +221,10 @@ export const LdapServersPage = () => {
         </Button>
       </Box>
 
-      {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-          <CircularProgress />
-        </Box>
+      {isMobile && (
+        <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
+      <ListProgress isFetching={isFetching} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -186,13 +232,13 @@ export const LdapServersPage = () => {
         </Typography>
       )}
 
-      {!isLoading && !error && servers.length === 0 && (
+      {!isFetching && !error && servers.length === 0 && (
         <Typography color="text.secondary">{t("ldapServers.empty")}</Typography>
       )}
 
       {servers.length > 0 && isMobile && (
         <>
-          <Stack spacing={1}>
+          <Stack spacing={1} aria-busy={isFetching}>
             {servers.map(server => (
               <Card key={server.id}>
                 <CardContent>
@@ -249,18 +295,20 @@ export const LdapServersPage = () => {
         </>
       )}
 
-      {servers.length > 0 && !isMobile && (
+      {!isMobile && (servers.length > 0 || isFetching) && (
         <TableContainer component={Paper}>
-          <Table size="small">
+          <Table size="small" aria-busy={isFetching}>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
-                <TableCell>{t("ldapServers.name")}</TableCell>
-                <TableCell>{t("ldapServers.host")}</TableCell>
-                <TableCell>{t("ldapServers.port")}</TableCell>
-                <TableCell>{t("ldapServers.ssl")}</TableCell>
-                <TableCell>{t("ldapServers.priority")}</TableCell>
-                <TableCell>{t("common.active")}</TableCell>
+                {tableFields.map(field => (
+                  <SortableTableCell
+                    key={field}
+                    field={field}
+                    label={sortLabels[field]}
+                    sort={sort}
+                    onSort={sortBy}
+                  />
+                ))}
                 <TableCell>{t("common.actions")}</TableCell>
               </TableRow>
             </TableHead>

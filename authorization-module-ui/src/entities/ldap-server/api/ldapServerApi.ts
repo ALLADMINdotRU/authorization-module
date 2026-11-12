@@ -7,21 +7,27 @@ import type {
   ListLdapServersArgs,
 } from "../model/types"
 
+const ldapServersListTag = { type: "LdapServers", id: "LIST" } as const
+
+type LdapServerTestResult = { success: boolean; message?: string }
+
 export const ldapServerApi = baseApi.injectEndpoints({
   endpoints: build => ({
     listLdapServers: build.query<Page<LdapServer>, ListLdapServersArgs>({
-      query: ({ page = 1, limit = 20 }) => ({
+      query: ({ page = 1, limit = 20, sort_by, sort_order }) => ({
         url: "/auth/admin/rest/ldap-servers",
         method: "GET",
-        params: { page, limit },
+        params: { page, limit, sort_by, sort_order },
       }),
-      providesTags: ["LdapServers"],
+      providesTags: [ldapServersListTag],
     }),
     getLdapServer: build.query<LdapServer, number>({
       query: id => ({
         url: `/auth/admin/rest/ldap-servers/${String(id)}`,
         method: "GET",
       }),
+      keepUnusedDataFor: 0,
+      providesTags: (_result, _error, id) => [{ type: "LdapServers", id }],
     }),
     createLdapServer: build.mutation<LdapServer, LdapServerCreate>({
       query: body => ({
@@ -29,7 +35,7 @@ export const ldapServerApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["LdapServers"],
+      invalidatesTags: [ldapServersListTag],
     }),
     updateLdapServer: build.mutation<
       LdapServer,
@@ -40,23 +46,28 @@ export const ldapServerApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: ["LdapServers"],
+      invalidatesTags: (_result, error) => (error ? [] : [ldapServersListTag]),
     }),
     deleteLdapServer: build.mutation<undefined, number>({
       query: id => ({
         url: `/auth/admin/rest/ldap-servers/${String(id)}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["LdapServers"],
+      invalidatesTags: (_result, error, id) =>
+        error ? [] : [ldapServersListTag, { type: "LdapServers", id }],
     }),
-    testLdapServer: build.mutation<
-      { success: boolean; message: string },
-      number
-    >({
+    testLdapServer: build.mutation<LdapServerTestResult, number>({
       query: id => ({
         url: `/auth/admin/rest/ldap-servers/${String(id)}/test`,
         method: "POST",
       }),
+      // Older backends unpacked the successful response into its keys.
+      transformResponse: (
+        result:
+          LdapServerTestResult | { success: "success"; message: "message" },
+      ): LdapServerTestResult =>
+        result.success === "success" ? { success: true } : result,
+      extraOptions: { skipErrorNotification: true },
     }),
   }),
 })

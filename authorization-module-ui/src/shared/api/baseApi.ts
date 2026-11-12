@@ -14,25 +14,41 @@ const baseQuery = fetchBaseQuery({
   credentials: "include",
 })
 
+export const getApiErrorDetail = (data: unknown): string | undefined => {
+  if (
+    data &&
+    typeof data === "object" &&
+    "detail" in data &&
+    typeof data.detail === "string" &&
+    data.detail.trim()
+  ) {
+    return data.detail
+  }
+
+  return undefined
+}
+
 const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
-  FetchBaseQueryError
-> = async (args, api, extraOptions) => {
+  FetchBaseQueryError,
+  { skipErrorNotification?: boolean } | undefined
+> = async (args, api, extraOptions = {}) => {
   const result = await baseQuery(args, api, extraOptions)
+  if (api.signal.aborted) {
+    return result
+  }
+
   const url = typeof args === "string" ? args : args.url
 
   if (result.error?.status === 401 && url !== "/auth/login") {
     api.dispatch(clearUser())
   }
 
-  if (result.error?.status === 400) {
-    const { data } = result.error
-    if (data && typeof data === "object" && "detail" in data) {
-      const detail = (data as { detail?: unknown }).detail
-      if (typeof detail === "string") {
-        api.dispatch(showNotification({ message: detail, severity: "error" }))
-      }
+  if (result.error?.status === 400 && !extraOptions.skipErrorNotification) {
+    const detail = getApiErrorDetail(result.error.data)
+    if (detail) {
+      api.dispatch(showNotification({ message: detail, severity: "error" }))
     }
   }
 
