@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { SubmitEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
   FormControlLabel,
   Switch,
   TextField,
-  Typography,
 } from "@mui/material"
 import { skipToken } from "@reduxjs/toolkit/query"
 import { Controller, useForm } from "react-hook-form"
@@ -17,12 +17,16 @@ import { useTranslation } from "react-i18next"
 import { z } from "zod"
 import type { TFunction } from "i18next"
 import {
+  getUserPhotoUrl,
   useCreateUserMutation,
   useGetUserQuery,
+  useListUsersQuery,
   useUpdateUserMutation,
+  useUploadUserPhotoMutation,
 } from "../../../entities/user"
-import type { UserCreate, UserUpdate } from "../../../entities/user"
+import type { UserCreate } from "../../../entities/user"
 import { PageHeader } from "../../../shared/ui/page-header"
+import { UserPhotoField } from "./UserPhotoField"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -64,17 +68,27 @@ const defaultValues: UserFormValues = {
 const toNullable = (value?: string | null) =>
   value?.trim() ? value.trim() : null
 
-export const UserFormPage = () => {
+const UserForm = ({ id }: { id?: string }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { id } = useParams()
   const isEdit = id !== undefined
   const userId = isEdit ? Number(id) : undefined
 
-  const { data: user, isLoading } = useGetUserQuery(userId ?? skipToken)
-  const [createUser, { isLoading: isCreating }] = useCreateUserMutation()
-  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation()
-  const [submitError, setSubmitError] = useState(false)
+  const userQuery = useGetUserQuery(userId ?? skipToken)
+  const accessQuery = useListUsersQuery(
+    isEdit ? skipToken : { include_deleted: false, limit: 1 },
+    { refetchOnMountOrArgChange: true },
+  )
+  const user = userQuery.currentData
+  const access = isEdit ? userQuery : accessQuery
+  const [createUser] = useCreateUserMutation()
+  const [updateUser] = useUpdateUserMutation()
+  const [uploadPhoto] = useUploadUserPhotoMutation()
+  const [photo, setPhoto] = useState<Blob>()
+  const [submitError, setSubmitError] = useState<
+    "userForm.saveError" | "userPhoto.uploadError"
+  >()
+  const savedUser = useRef<{ id: number; data: UserCreate }>(undefined)
 
   const schema = useMemo(() => buildUserFormSchema(t), [t])
 
@@ -83,7 +97,7 @@ export const UserFormPage = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<UserFormValues>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -109,59 +123,77 @@ export const UserFormPage = () => {
   }, [user, reset])
 
   const onSubmit = async (values: UserFormValues) => {
-    setSubmitError(false)
-    try {
-      if (isEdit && userId !== undefined) {
-        const data: UserUpdate = {
-          username: values.username.trim(),
-          password: toNullable(values.password),
-          email: toNullable(values.email),
-          full_name: toNullable(values.full_name),
-          mobile_phone: toNullable(values.mobile_phone),
-          ip_phone: toNullable(values.ip_phone),
-          messenger: toNullable(values.messenger),
-          company: toNullable(values.company),
-          department: toNullable(values.department),
-          position: toNullable(values.position),
-          auth_method: values.auth_method.trim() || undefined,
-          is_active: values.is_active,
-        }
-        await updateUser({ id: userId, data }).unwrap()
-      } else {
-        const data: UserCreate = {
-          username: values.username.trim(),
-          password: toNullable(values.password),
-          email: toNullable(values.email),
-          full_name: toNullable(values.full_name),
-          mobile_phone: toNullable(values.mobile_phone),
-          ip_phone: toNullable(values.ip_phone),
-          messenger: toNullable(values.messenger),
-          company: toNullable(values.company),
-          department: toNullable(values.department),
-          position: toNullable(values.position),
-          auth_method: values.auth_method.trim() || undefined,
-          is_active: values.is_active,
-        }
-        await createUser(data).unwrap()
-      }
-      await navigate("/users")
-    } catch {
-      setSubmitError(true)
+    setSubmitError(undefined)
+    const data: UserCreate = {
+      username: values.username.trim(),
+      password: toNullable(values.password),
+      email: toNullable(values.email),
+      full_name: toNullable(values.full_name),
+      mobile_phone: toNullable(values.mobile_phone),
+      ip_phone: toNullable(values.ip_phone),
+      messenger: toNullable(values.messenger),
+      company: toNullable(values.company),
+      department: toNullable(values.department),
+      position: toNullable(values.position),
+      auth_method: values.auth_method.trim() || undefined,
+      is_active: values.is_active,
     }
+
+    const previousSave = savedUser.current
+    let savedId = previousSave?.id ?? userId
+    try {
+      if (savedId === undefined) {
+        savedId = (await createUser(data).unwrap()).id
+      } else if (JSON.stringify(previousSave?.data) !== JSON.stringify(data)) {
+        await updateUser({ id: savedId, data }).unwrap()
+      }
+      savedUser.current = { id: savedId, data }
+    } catch {
+      setSubmitError("userForm.saveError")
+      return
+    }
+
+    if (photo) {
+      try {
+        await uploadPhoto({ id: savedId, photo }).unwrap()
+      } catch {
+        setSubmitError("userPhoto.uploadError")
+        return
+      }
+    }
+
+    await navigate("/users")
   }
 
   const handleFormSubmit = (event: SubmitEvent<HTMLFormElement>) => {
-    void handleSubmit(onSubmit)(event)
+    event.preventDefault()
+    if (!isSubmitting) void handleSubmit(onSubmit)(event)
   }
 
   const title = isEdit ? t("userForm.editTitle") : t("userForm.createTitle")
-  const isSubmitting = isCreating || isUpdating
   const isLdap = isEdit && user?.auth_method !== "local"
 
-  if (isEdit && isLoading) {
+  if (access.isFetching && !access.currentData) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
         <CircularProgress />
+      </Box>
+    )
+  }
+
+  if (access.isError || !access.currentData) {
+    const error = access.error
+    const forbidden = error && "status" in error && error.status === 403
+
+    return (
+      <Box sx={{ p: 2 }}>
+        <PageHeader title={title} />
+        <Alert severity="error">
+          {t(forbidden ? "userForm.forbidden" : "userForm.loadError")}
+        </Alert>
+        <Button component={Link} to="/main" sx={{ mt: 2 }}>
+          {t("common.back")}
+        </Button>
       </Box>
     )
   }
@@ -180,6 +212,12 @@ export const UserFormPage = () => {
           mx: "auto",
         }}
       >
+        <UserPhotoField
+          photo={photo}
+          savedPhotoUrl={user && getUserPhotoUrl(user)}
+          disabled={isSubmitting}
+          onChange={setPhoto}
+        />
         <TextField
           label={t("common.username")}
           {...register("username")}
@@ -240,20 +278,30 @@ export const UserFormPage = () => {
         />
 
         {submitError && (
-          <Typography color="error" sx={{ gridColumn: "1 / -1" }}>
-            {t("userForm.saveError")}
-          </Typography>
+          <Alert severity="error" sx={{ gridColumn: "1 / -1" }}>
+            {t(submitError)}
+          </Alert>
         )}
 
         <Box sx={{ display: "flex", gap: 2, gridColumn: "1 / -1" }}>
           <Button type="submit" variant="contained" disabled={isSubmitting}>
             {t("common.save")}
           </Button>
-          <Button component={Link} to="/users" variant="outlined">
+          <Button
+            component={Link}
+            to="/users"
+            variant="outlined"
+            disabled={isSubmitting}
+          >
             {t("common.back")}
           </Button>
         </Box>
       </Box>
     </Box>
   )
+}
+
+export const UserFormPage = () => {
+  const { id } = useParams()
+  return <UserForm key={id ?? "create"} id={id} />
 }

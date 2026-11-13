@@ -45,6 +45,24 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, error) => (error ? [] : [usersListTag]),
     }),
+    uploadUserPhoto: build.mutation<
+      { has_photo: boolean; url: string | null },
+      { id: number; photo: Blob }
+    >({
+      query: ({ id, photo }) => {
+        const body = new FormData()
+        const extension = photo.type === "image/webp" ? "webp" : "png"
+        body.append("file", photo, `avatar.${extension}`)
+
+        return {
+          url: `/auth/admin/rest/users/${String(id)}/photo`,
+          method: "POST",
+          body,
+        }
+      },
+      extraOptions: { skipErrorNotification: true },
+      invalidatesTags: (_result, error) => (error ? [] : [usersListTag]),
+    }),
     deleteUser: build.mutation<undefined, number>({
       query: id => ({
         url: `/auth/admin/rest/users/${String(id)}`,
@@ -69,6 +87,7 @@ export const {
   useGetUserQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
+  useUploadUserPhotoMutation,
   useDeleteUserMutation,
   useRestoreUserMutation,
 } = userApi

@@ -53,7 +53,7 @@ export const MainPage = () => {
           gap: 1,
         }}
       >
-        <Button component={Link} to="/profile" variant="outlined">
+        <Button component={Link} to="/me" variant="outlined">
           {t("navigation.profile")}
         </Button>
         <Button component={Link} to="/users" variant="outlined">

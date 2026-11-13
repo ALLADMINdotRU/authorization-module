@@ -1,7 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import BusinessOutlinedIcon from "@mui/icons-material/BusinessOutlined"
 import ContactMailOutlinedIcon from "@mui/icons-material/ContactMailOutlined"
-import PhotoCameraOutlinedIcon from "@mui/icons-material/PhotoCameraOutlined"
 import {
   Alert,
   Avatar,
@@ -17,14 +16,12 @@ import {
   Typography,
 } from "@mui/material"
 import { alpha } from "@mui/material/styles"
-import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
-import type { UserProfile } from "../../../entities/user"
+import { getUserPhotoUrl, type UserProfile } from "../../../entities/user"
 import { useMeQuery } from "../../../features/auth"
 import { PageHeader } from "../../../shared/ui/page-header"
-import { AvatarCropDialog } from "./AvatarCropDialog"
 
 type ProfileField = readonly [label: string, value: string | number | null]
 
@@ -107,21 +104,6 @@ const ProfileSection = ({ title, icon, fields }: ProfileSectionProps) => (
 
 const ProfileDetails = ({ user }: { user: UserProfile }) => {
   const { t, i18n } = useTranslation()
-  const avatarInput = useRef<HTMLInputElement>(null)
-  const [avatarFile, setAvatarFile] = useState<File>()
-  const [avatar, setAvatar] = useState<Blob>()
-  const [avatarUrl, setAvatarUrl] = useState<string>()
-
-  useEffect(() => {
-    if (!avatar) return
-
-    const url = URL.createObjectURL(avatar)
-    setAvatarUrl(url)
-    return () => {
-      URL.revokeObjectURL(url)
-    }
-  }, [avatar])
-
   const fullName = user.full_name?.trim() ?? ""
   const displayName = fullName || user.username
   const initials = displayName
@@ -147,7 +129,7 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
           avatar={
             <Avatar
               aria-hidden="true"
-              src={avatarUrl}
+              src={getUserPhotoUrl(user)}
               sx={{
                 width: { xs: 52, sm: 64 },
                 height: { xs: 52, sm: 64 },
@@ -170,47 +152,32 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
             </Typography>
           }
           subheader={
-            <Stack spacing={0.75} sx={{ mt: 0.75, alignItems: "flex-start" }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                useFlexGap
-                sx={{ alignItems: "center", flexWrap: "wrap", minWidth: 0 }}
-              >
-                {fullName && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ overflowWrap: "anywhere", minWidth: 0 }}
-                  >
-                    {user.username}
-                  </Typography>
-                )}
-                <Chip
-                  aria-label={`${t("profile.status")} - ${status}`}
-                  label={status}
-                  size="small"
-                  variant="outlined"
-                  color={user.is_active ? "success" : "default"}
-                />
-              </Stack>
-              <Button
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              sx={{
+                mt: 0.75,
+                alignItems: "center",
+                flexWrap: "wrap",
+                minWidth: 0,
+              }}
+            >
+              {fullName && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ overflowWrap: "anywhere", minWidth: 0 }}
+                >
+                  {user.username}
+                </Typography>
+              )}
+              <Chip
+                aria-label={`${t("profile.status")} - ${status}`}
+                label={status}
                 size="small"
-                startIcon={<PhotoCameraOutlinedIcon />}
-                onClick={() => avatarInput.current?.click()}
-              >
-                {t(avatar ? "profile.changePhoto" : "profile.choosePhoto")}
-              </Button>
-              <input
-                ref={avatarInput}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={event => {
-                  const file = event.currentTarget.files?.[0]
-                  if (file) setAvatarFile(file)
-                  event.currentTarget.value = ""
-                }}
+                variant="outlined"
+                color={user.is_active ? "success" : "default"}
               />
             </Stack>
           }
@@ -277,18 +244,6 @@ const ProfileDetails = ({ user }: { user: UserProfile }) => {
           ]}
         />
       </Box>
-      {avatarFile && (
-        <AvatarCropDialog
-          file={avatarFile}
-          onCancel={() => {
-            setAvatarFile(undefined)
-          }}
-          onApply={croppedAvatar => {
-            setAvatar(croppedAvatar)
-            setAvatarFile(undefined)
-          }}
-        />
-      )}
     </Stack>
   )
 }

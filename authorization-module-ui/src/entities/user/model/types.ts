@@ -14,6 +14,7 @@ export type UserProfile = {
   is_active: boolean
   auth_method: string
   created_at: string
+  photo_updated_at?: string | null
 }
 
 export type User = UserProfile & {
@@ -39,7 +40,10 @@ export type UserCreate = {
 
 export type UserUpdate = Partial<UserCreate>
 
-export type UserSortField = Exclude<keyof User, "deleted_by">
+export type UserSortField = Exclude<
+  keyof User,
+  "deleted_by" | "photo_updated_at"
+>
 
 export type ListUsersArgs = Partial<ListSort<UserSortField>> & {
   include_deleted: boolean
