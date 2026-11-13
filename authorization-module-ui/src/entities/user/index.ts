@@ -6,7 +6,9 @@ export {
   useListUsersQuery,
   useRestoreUserMutation,
   useUpdateUserMutation,
+  useUploadUserPhotoMutation,
 } from "./api/userApi"
+export { getUserPhotoUrl } from "./model/getUserPhotoUrl"
 export type {
   ListUsersArgs,
   Page,

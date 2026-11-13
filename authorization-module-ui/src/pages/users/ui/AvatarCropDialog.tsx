@@ -43,7 +43,7 @@ export const AvatarCropDialog = ({
   const [area, setArea] = useState<Area>()
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState<
-    "profile.photoError" | "profile.cropError"
+    "userPhoto.photoError" | "userPhoto.cropError"
   >()
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export const AvatarCropDialog = ({
         if (!cancelled) setImage(source)
       },
       () => {
-        if (!cancelled) setError("profile.photoError")
+        if (!cancelled) setError("userPhoto.photoError")
       },
     )
 
@@ -99,7 +99,7 @@ export const AvatarCropDialog = ({
 
       onApply(avatar)
     } catch {
-      setError("profile.cropError")
+      setError("userPhoto.cropError")
       setApplying(false)
     }
   }
@@ -113,7 +113,7 @@ export const AvatarCropDialog = ({
       fullWidth
       maxWidth="sm"
     >
-      <DialogTitle id={titleId}>{t("profile.cropTitle")}</DialogTitle>
+      <DialogTitle id={titleId}>{t("userPhoto.cropTitle")}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           {image && (
@@ -141,7 +141,7 @@ export const AvatarCropDialog = ({
                   mediaProps={{ alt: "" }}
                   cropperProps={{
                     role: "group",
-                    "aria-label": t("profile.cropArea"),
+                    "aria-label": t("userPhoto.cropArea"),
                   }}
                   onCropChange={setCrop}
                   onZoomChange={setZoom}
@@ -151,9 +151,9 @@ export const AvatarCropDialog = ({
                 />
               </Box>
               <Box sx={{ px: 1 }}>
-                <Typography variant="body2">{t("profile.zoom")}</Typography>
+                <Typography variant="body2">{t("userPhoto.zoom")}</Typography>
                 <Slider
-                  aria-label={t("profile.zoom")}
+                  aria-label={t("userPhoto.zoom")}
                   value={zoom}
                   min={1}
                   max={MAX_ZOOM}
@@ -185,7 +185,7 @@ export const AvatarCropDialog = ({
             void handleApply()
           }}
         >
-          {t("profile.applyCrop")}
+          {t("userPhoto.applyCrop")}
         </Button>
       </DialogActions>
     </Dialog>
