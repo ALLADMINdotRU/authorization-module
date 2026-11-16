@@ -18,7 +18,7 @@ from ..models import User, LDAPServer
 from ..schemas import LDAPServerCreate, LDAPServerRead, LDAPServerUpdate, Page
 from ..security import admin_required
 from ..services import ldap_service
-from ..exceptions import LDAPServerNotFound
+from ..exceptions import LDAPServerNotFound, LDAPConnectionFailed
 
 
 router = APIRouter(prefix="/admin/rest/ldap-servers", tags=["admin-ldap"])
@@ -111,11 +111,14 @@ async def test_server(server_id: int, db: AsyncSession = Depends(get_db), _admin
     """
     Проверить подключение к существующему серверу.
 
-    Возвращает {"success": true, "message": "..."}.
+    Возвращает {"success": true, "message": "..."} при успехе.
+    При ошибке — LDAPConnectionFailed (detail/type/code).
     """
     server = await ldap_service.get_server_by_id(db, server_id)
     if not server:
         raise LDAPServerNotFound(server_id)
 
-    success, message = await ldap_service.test_connection(db, server)
-    return {"success": success, "message": message}
+    ok, message = await ldap_service.test_connection(db, server)
+    if not ok:
+        raise LDAPConnectionFailed(message)
+    return {"success": True, "message": message}
