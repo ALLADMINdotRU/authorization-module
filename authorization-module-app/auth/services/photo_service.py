@@ -28,7 +28,11 @@ def _user_dir(user_id: int) -> Path:
     return Path(settings.PHOTO_UPLOAD_DIR) / str(user_id)
 
 
-async def save_photo(db: AsyncSession, user: User, raw: bytes) -> None:
+async def save_photo(
+        db: AsyncSession, 
+        user: User, 
+        raw: bytes
+        ) -> None:
     """
     Сохранить фото: сжать в два размера и записать на диск.
 
@@ -48,16 +52,84 @@ async def save_photo(db: AsyncSession, user: User, raw: bytes) -> None:
     profile = image.make_profile(img, settings.PHOTO_PROFILE_SIZE, settings.PHOTO_PROFILE_QUALITY)
 
     # ── 3. Записываем на диск ──
-    folder = _user_dir(user.id)
-    folder.mkdir(parents=True, exist_ok=True)      # создаём папку, если её нет
-    (folder / "avatar.webp").write_bytes(avatar)
-    (folder / "profile.webp").write_bytes(profile)
+    _write_photo_files(user, avatar, profile)   # общая запись на диск
 
     # ── 4. Обновляем метку в БД ──
     user.mark_photo_updated()
-    await db.commit()
+    await _finalize_photo(db, user)             # общая метка + commit + лог
 
+
+async def save_photo_from_ldap(
+    db: AsyncSession,
+    user: User,
+    thumbnail_b64: str | None,
+    jpeg_b64: str | None,
+) -> None:
+    """
+    Сохранить фото пользователя, полученное из LDAP.
+
+    В AD два фото:
+    - thumbnailPhoto → маленькая (avatar);
+    - jpegPhoto      → большая (profile).
+
+    Обе приходят в base64 (repository.py кодирует их).
+
+    Args:
+        db: сессия БД
+        user: пользователь
+        thumbnail_b64: base64 маленького фото (или None)
+        jpeg_b64: base64 большого фото (или None)
+    """
+    # ── 1. Нет ни одной фотографии — нечего сохранять ──
+    if not thumbnail_b64 and not jpeg_b64:
+        return
+
+    # Готовим только те фото, что есть
+    avatar = None
+    profile = None
+
+    # ── 2. Аватар из thumbnailPhoto ──
+    if thumbnail_b64:
+        img = image.from_base64(thumbnail_b64)
+        avatar = image.make_avatar(img, settings.PHOTO_AVATAR_SIZE, settings.PHOTO_AVATAR_QUALITY)
+
+    # ── 3. Профиль из jpegPhoto ──
+    if jpeg_b64:
+        img = image.from_base64(jpeg_b64)
+        profile = image.make_profile(img, settings.PHOTO_PROFILE_SIZE, settings.PHOTO_PROFILE_QUALITY)
+
+    _write_photo_files(user, avatar, profile)   # общая запись на диск
+    await _finalize_photo(db, user)             # общая метка + commit + лог
+
+
+def _write_photo_files(user: User, avatar_bytes: bytes | None, profile_bytes: bytes | None) -> None:
+    """
+    Записать готовые файлы avatar/profile на диск.
+
+    Ничего не знает про БД — просто кладёт файлы в папку пользователя.
+    Каждый файл опционален (может быть None).
+
+    Args:
+        user: пользователь
+        avatar_bytes: готовый WebP аватара (или None)
+        profile_bytes: готовый WebP профиля (или None)
+    """
+    folder = _user_dir(user.id)
+    folder.mkdir(parents=True, exist_ok=True)
+
+    if avatar_bytes:
+        (folder / "avatar.webp").write_bytes(avatar_bytes)
+    if profile_bytes:
+        (folder / "profile.webp").write_bytes(profile_bytes)
+
+
+async def _finalize_photo(db: AsyncSession, user: User) -> None:
+    """Обновить метку фото в БД, зафиксировать и залогировать."""
+    user.mark_photo_updated()
+    await db.commit()
     logger.info("Фото пользователя '%s' (id=%s) сохранено", user.username, user.id)
+
+
 
 
 async def get_photo_path(db: AsyncSession, user: User, size: str) -> Path | None:

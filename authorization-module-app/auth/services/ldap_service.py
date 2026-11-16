@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User, Role, LDAPServer
 from ..exceptions import LDAPServerAlreadyExists, LDAPConnectionFailed
+from . import photo_service
 
 from ..ldap import (
     LDAPConfig,
@@ -331,6 +332,14 @@ async def _create_user_from_ldap(db: AsyncSession, username: str, server: LDAPSe
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Сохраняем фото из LDAP (thumbnailPhoto → avatar, jpegPhoto → profile)
+    await photo_service.save_photo_from_ldap(
+        db,
+        user,
+        thumbnail_b64=ldap_data.get("thumbnailPhoto"),
+        jpeg_b64=ldap_data.get("jpegPhoto"),
+    )
 
     logger.info(f"Создан LDAP-пользователь: {full_username}")
     return user

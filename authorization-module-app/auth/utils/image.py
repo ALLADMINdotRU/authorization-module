@@ -8,6 +8,7 @@
 Функции «чистые» — принимают размеры/качество параметрами,
 чтобы не зависеть от настроек (их передаст photo_service).
 """
+import base64
 import io
 
 from PIL import Image
@@ -96,3 +97,20 @@ def make_profile(img: Image.Image, size: int, quality: int) -> bytes:
     buf = io.BytesIO()
     img.save(buf, format="WEBP", quality=quality)
     return buf.getvalue()
+
+
+def from_base64(b64: str) -> Image.Image:
+    """
+    Декодировать base64-строку в изображение.
+
+    Нужно для фото из LDAP: AD отдаёт thumbnailPhoto/jpegPhoto
+    в бинарном виде, а repository.py кодирует их в base64-строку.
+
+    Args:
+        b64: base64-строка с изображением
+
+    Returns:
+        Image.Image — открытое изображение
+    """
+    raw = base64.b64decode(b64)      # base64 → бинарные байты
+    return Image.open(io.BytesIO(raw))
