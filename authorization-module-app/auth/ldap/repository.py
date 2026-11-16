@@ -22,7 +22,8 @@ DEFAULT_ATTRIBUTES = [
     'title', 
     'ipPhone', 
     'department', 
-    'thumbnailPhoto', 
+    'thumbnailPhoto',
+    'jpegPhoto',
     'objectGUID',
     'whenCreated', 
     'whenChanged', 
@@ -47,6 +48,7 @@ ATTRIBUTE_MAP = {
     'company': 'company',
     'department': 'department',
     'thumbnailPhoto': 'thumbnailPhoto',        # требует base64
+    'jpegPhoto': 'jpegPhoto',                  # требует base64
     'ipPhone': 'ipPhone',
     'telephoneNumber': 'telephoneNumber',
     'givenName': 'givenName',
@@ -100,7 +102,7 @@ def _map_entry_to_dict(entry, attributes):
         if ldap_attr in entry and getattr(entry, ldap_attr).value:
             raw_value = getattr(entry, ldap_attr).value
             # Спец-обработка для фото
-            if ldap_attr == 'thumbnailPhoto':
+            if ldap_attr in ('thumbnailPhoto', 'jpegPhoto'):
                 result[out_key] = _convert_photo(raw_value)
             # Спец-обработка для whenCreated/whenChanged
             elif ldap_attr in ('whenCreated', 'whenChanged'):
