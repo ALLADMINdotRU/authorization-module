@@ -529,8 +529,14 @@ async def test_connection(db: AsyncSession, server: LDAPServer,) -> tuple[bool, 
     Используется в админке, чтобы проверить настройки сервера
     без перезапуска приложения.
 
+    Args:
+        db: сессия БД
+        server: LDAP-сервер для проверки
+
     Returns:
         tuple[bool, str] — (успех, сообщение)
+            успех    — True, если подключение (bind) прошло;
+            сообщение — "Подключение успешно" или текст ошибки.
 
     Важно: сама проверка СИНХРОННАЯ (ldap3 блокирует), поэтому
     оборачиваем её в run_in_executor, чтобы не блокировать event loop.
@@ -543,20 +549,22 @@ async def test_connection(db: AsyncSession, server: LDAPServer,) -> tuple[bool, 
         _test_connection_sync,  # синхронная функция
         server,                # её аргумент
     )
-    if not ok:
-        raise LDAPConnectionFailed(error_text)   # → уйдёт в auth_error_handler
-    return {"success": True, "message": "Подключение успешно"}
+
+    return ok, error_text
 
 
-def _test_connection_sync(server: LDAPServer) -> bool:
+def _test_connection_sync(server: LDAPServer) -> tuple[bool, str]:
     """
     Синхронная проверка подключения.
 
     Эта функция СИНХРОННАЯ (не async) — она блокирует поток,
     пока идёт LDAP-запрос. Поэтому вызывается через run_in_executor.
 
+    Args:
+        server: LDAP-сервер для проверки
+
     Returns:
-        bool — True если подключение (bind) успешно
+        tuple[bool, str] — (успех, сообщение)
     """
     # Строим конфиг из модели (используем bind-учётку сервера)
     config = build_ldap_config(server)
