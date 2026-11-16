@@ -37,4 +37,3 @@ jobs:
           push: true                    # запушить после сборки
           tags: |
             fil232323/auth-module-app:latest
-            fil232323/auth-module-app:${{ github.sha }}

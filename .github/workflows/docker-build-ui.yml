@@ -46,4 +46,3 @@ jobs:
           push: true                         # запушить после сборки (true = да)
           tags: |                            # список тегов образа
             fil232323/auth-module-ui:latest            
-            fil232323/auth-module-ui:${{ github.sha }} 
