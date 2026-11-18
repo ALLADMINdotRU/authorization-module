@@ -36,7 +36,6 @@ import {
   SortableTableCell,
   useListSort,
 } from "../../../shared/ui/list-sort"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 const tableFields = ["id", "name", "description"] as const
 
@@ -134,7 +133,6 @@ export const RolesPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={t("roles.title")} />
       <Box
         sx={{
           mb: 2,

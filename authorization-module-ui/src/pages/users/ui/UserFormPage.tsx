@@ -25,7 +25,6 @@ import {
   useUploadUserPhotoMutation,
 } from "../../../entities/user"
 import type { UserCreate } from "../../../entities/user"
-import { PageHeader } from "../../../shared/ui/page-header"
 import { UserPhotoField } from "./UserPhotoField"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -177,7 +176,6 @@ const UserForm = ({ id }: { id?: string }) => {
     if (!isSubmitting) void handleSubmit(onSubmit)(event)
   }
 
-  const title = isEdit ? t("userForm.editTitle") : t("userForm.createTitle")
   const isLdap = isEdit && user?.auth_method !== "local"
 
   if (access.isFetching && !access.currentData) {
@@ -194,7 +192,6 @@ const UserForm = ({ id }: { id?: string }) => {
 
     return (
       <Box sx={{ p: 2 }}>
-        <PageHeader title={title} />
         <Alert severity="error">
           {t(forbidden ? "userForm.forbidden" : "userForm.loadError")}
         </Alert>
@@ -207,7 +204,6 @@ const UserForm = ({ id }: { id?: string }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={title} />
       <Box
         component="form"
         onSubmit={handleFormSubmit}
