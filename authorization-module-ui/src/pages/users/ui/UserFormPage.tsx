@@ -225,19 +225,26 @@ const UserForm = ({ id }: { id?: string }) => {
           helperText={errors.username?.message}
           required
         />
-        <TextField
-          label={t("common.password")}
-          type="password"
-          {...register("password")}
-          disabled={isLdap}
-          helperText={
-            isLdap
-              ? t("userForm.passwordFromAd")
-              : isEdit
-                ? t("userForm.passwordKeepEmpty")
-                : undefined
-          }
-        />
+        {isLdap ? (
+          <TextField
+            label={t("common.password")}
+            value={t("userForm.passwordFromAd")}
+            disabled
+            sx={{
+              "& .MuiInputBase-input": {
+                fontSize: "0.75rem",
+                height: "1.4375rem",
+              },
+            }}
+          />
+        ) : (
+          <TextField
+            label={t("common.password")}
+            type="password"
+            {...register("password")}
+            helperText={isEdit ? t("userForm.passwordKeepEmpty") : undefined}
+          />
+        )}
         <TextField label={t("common.fullName")} {...register("full_name")} />
         <TextField
           label={t("common.email")}
