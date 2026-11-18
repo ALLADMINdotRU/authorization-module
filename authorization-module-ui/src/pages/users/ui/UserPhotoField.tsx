@@ -8,6 +8,7 @@ import { AvatarCropDialog } from "./AvatarCropDialog"
 type UserPhotoFieldProps = {
   photo?: Blob
   savedPhotoUrl?: string
+  canEdit: boolean
   disabled: boolean
   onChange: (photo: Blob) => void
 }
@@ -15,6 +16,7 @@ type UserPhotoFieldProps = {
 export const UserPhotoField = ({
   photo,
   savedPhotoUrl,
+  canEdit,
   disabled,
   onChange,
 }: UserPhotoFieldProps) => {
@@ -40,7 +42,7 @@ export const UserPhotoField = ({
       sx={{ alignItems: "center", gridColumn: "1 / -1" }}
     >
       <Avatar
-        src={previewUrl ?? savedPhotoUrl}
+        src={(canEdit ? previewUrl : undefined) ?? savedPhotoUrl}
         alt={t("userPhoto.title")}
         sx={{ width: 64, height: 64 }}
       >
@@ -48,33 +50,37 @@ export const UserPhotoField = ({
       </Avatar>
       <Stack sx={{ alignItems: "flex-start" }}>
         <Typography variant="body2">{t("userPhoto.title")}</Typography>
-        <Button
-          type="button"
-          size="small"
-          startIcon={<PhotoCameraOutlinedIcon />}
-          disabled={disabled}
-          onClick={() => input.current?.click()}
-        >
-          {t(
-            photo || savedPhotoUrl
-              ? "userPhoto.changePhoto"
-              : "userPhoto.choosePhoto",
-          )}
-        </Button>
-        <input
-          ref={input}
-          type="file"
-          accept="image/*"
-          hidden
-          disabled={disabled}
-          onChange={event => {
-            const file = event.currentTarget.files?.[0]
-            if (file) setSelectedFile(file)
-            event.currentTarget.value = ""
-          }}
-        />
+        {canEdit && (
+          <>
+            <Button
+              type="button"
+              size="small"
+              startIcon={<PhotoCameraOutlinedIcon />}
+              disabled={disabled}
+              onClick={() => input.current?.click()}
+            >
+              {t(
+                photo || savedPhotoUrl
+                  ? "userPhoto.changePhoto"
+                  : "userPhoto.choosePhoto",
+              )}
+            </Button>
+            <input
+              ref={input}
+              type="file"
+              accept="image/*"
+              hidden
+              disabled={disabled}
+              onChange={event => {
+                const file = event.currentTarget.files?.[0]
+                if (file) setSelectedFile(file)
+                event.currentTarget.value = ""
+              }}
+            />
+          </>
+        )}
       </Stack>
-      {selectedFile && (
+      {canEdit && selectedFile && (
         <AvatarCropDialog
           file={selectedFile}
           onCancel={() => {
