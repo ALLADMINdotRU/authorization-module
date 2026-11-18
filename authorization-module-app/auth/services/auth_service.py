@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User
+from ..exceptions import InactiveUser
 from . import ldap_service
 
 logger = logging.getLogger(__name__)
@@ -55,6 +56,8 @@ async def authenticate(db: AsyncSession, login: str, password: str):
             # Локальный — проверяем хеш пароля
             if not user.check_password(password):
                 return None
+            if not user.is_active:
+                raise InactiveUser(user.username)      # заблокирован — не пускаем
             logger.info(f"Локальная аутентификация успешна: {login}")
             return user
 
@@ -65,6 +68,8 @@ async def authenticate(db: AsyncSession, login: str, password: str):
             # а LDAP работает по username ("ivanov" / "ivanov@domain").
             ldap_user = await ldap_service.authenticate_ldap(db, user.username, password)
             if ldap_user:
+                if not ldap_user.is_active:
+                    raise InactiveUser(ldap_user.username)   # заблокирован — не пускаем
                 logger.info(f"LDAP-аутентификация успешна: {login}")
                 return ldap_user
             return None

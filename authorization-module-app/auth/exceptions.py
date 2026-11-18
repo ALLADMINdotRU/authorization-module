@@ -219,6 +219,16 @@ class LDAPConnectionFailed(AuthError):
         )
 
 
+class LDAPUserNotFound(AuthError):
+    """Пользователь не найден в домене (LDAP)."""
+    def __init__(self, username: str):
+        super().__init__(
+            detail=f"Пользователь '{username}' не найден в домене",
+            status_code=404,
+            code="ldap_user_not_found",
+        )
+
+
 # ═══════════════════════════════════════════════════════════════
 # ОБРАБОТЧИК И РЕГИСТРАЦИЯ
 # ═══════════════════════════════════════════════════════════════
