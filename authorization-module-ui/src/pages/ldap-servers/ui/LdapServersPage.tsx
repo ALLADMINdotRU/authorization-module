@@ -45,7 +45,6 @@ import {
   SortableTableCell,
   useListSort,
 } from "../../../shared/ui/list-sort"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 const tableFields = [
   "id",
@@ -202,7 +201,6 @@ export const LdapServersPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={t("ldapServers.title")} />
       <Box
         sx={{
           mb: 2,
