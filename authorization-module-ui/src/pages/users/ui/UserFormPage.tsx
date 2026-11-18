@@ -11,7 +11,7 @@ import {
   TextField,
 } from "@mui/material"
 import { skipToken } from "@reduxjs/toolkit/query"
-import { Controller, useForm } from "react-hook-form"
+import { Controller, useForm, useWatch } from "react-hook-form"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { z } from "zod"
@@ -103,6 +103,10 @@ const UserForm = ({ id }: { id?: string }) => {
     defaultValues,
   })
 
+  const authMethod = useWatch({ control, name: "auth_method" })
+  const canEditPhoto =
+    (authMethod.trim() || (user?.auth_method ?? "local")) === "local"
+
   useEffect(() => {
     if (user) {
       reset({
@@ -153,7 +157,10 @@ const UserForm = ({ id }: { id?: string }) => {
       return
     }
 
-    if (photo) {
+    if (
+      photo &&
+      (data.auth_method ?? user?.auth_method ?? "local") === "local"
+    ) {
       try {
         await uploadPhoto({ id: savedId, photo }).unwrap()
       } catch {
@@ -215,6 +222,7 @@ const UserForm = ({ id }: { id?: string }) => {
         <UserPhotoField
           photo={photo}
           savedPhotoUrl={user && getUserPhotoUrl(user)}
+          canEdit={canEditPhoto}
           disabled={isSubmitting}
           onChange={setPhoto}
         />
@@ -225,19 +233,26 @@ const UserForm = ({ id }: { id?: string }) => {
           helperText={errors.username?.message}
           required
         />
-        <TextField
-          label={t("common.password")}
-          type="password"
-          {...register("password")}
-          disabled={isLdap}
-          helperText={
-            isLdap
-              ? t("userForm.passwordFromAd")
-              : isEdit
-                ? t("userForm.passwordKeepEmpty")
-                : undefined
-          }
-        />
+        {isLdap ? (
+          <TextField
+            label={t("common.password")}
+            value={t("userForm.passwordFromAd")}
+            disabled
+            sx={{
+              "& .MuiInputBase-input": {
+                fontSize: "0.75rem",
+                height: "1.4375rem",
+              },
+            }}
+          />
+        ) : (
+          <TextField
+            label={t("common.password")}
+            type="password"
+            {...register("password")}
+            helperText={isEdit ? t("userForm.passwordKeepEmpty") : undefined}
+          />
+        )}
         <TextField label={t("common.fullName")} {...register("full_name")} />
         <TextField
           label={t("common.email")}

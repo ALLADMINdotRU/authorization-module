@@ -1,27 +1,86 @@
-# vite-template-redux
+# Authorization Module UI
 
-Uses [Vite](https://vitejs.dev/), [Vitest](https://vitest.dev/), and [React Testing Library](https://github.com/testing-library/react-testing-library) to create a modern [React](https://react.dev/) app compatible with [Create React App](https://create-react-app.dev/)
+Веб-интерфейс модуля авторизации. Пользователь входит в систему и открывает свой профиль. Администратор управляет пользователями, ролями и LDAP-серверами. API находится в соседнем [authorization-module-app](../authorization-module-app).
+
+Фронтенд использует React 19, TypeScript и Vite. За маршруты отвечает React Router, за запросы и кэш — Redux Toolkit Query, за интерфейс — MUI. Формы используют React Hook Form и Zod, переводы — i18next.
+
+## Локальный запуск
+
+Для фронтенда используйте Node.js 22, как в [Dockerfile](./Dockerfile). Из корня репозитория поднимите FastAPI и PostgreSQL через Docker Compose.
 
 ```sh
-npx tiged reduxjs/redux-templates/packages/vite-template-redux my-app
+docker compose up -d db app
+cd authorization-module-ui
+npm ci
+npm run dev
 ```
 
-## Goals
+Vite по умолчанию открывает `http://localhost:5173` и проксирует запросы `/auth/*` на `http://localhost:8000`. Swagger доступен на `http://localhost:8000/docs`, проверка доступности API — на `http://localhost:8000/health`.
 
-- Easy migration from Create React App or Vite
-- As beginner friendly as Create React App
-- Optimized performance compared to Create React App
-- Customizable without ejecting
+При работе через прокси оставляйте `VITE_API_BASE_URL` пустым. Если API расположен на отдельном origin, задайте его адрес в `.env.local`, например `VITE_API_BASE_URL=http://localhost:8000`. Используйте базовый адрес без суффикса `/auth`. Для запросов между origin бэкенд должен разрешать origin фронтенда и передачу cookie. Vite читает переменную при запуске или сборке.
 
-## Scripts
+Чтобы запустить и фронтенд из опубликованного образа, выполните `docker compose up -d` из корня репозитория. Интерфейс будет доступен на `http://localhost:8080`. [nginx](./nginx.conf) проксирует `/auth/*` на `app:8000` и отдаёт `index.html` при открытии клиентских маршрутов напрямую.
 
-- `dev`/`start` - start dev server and open browser
-- `build` - build for production
-- `preview` - locally preview production build
-- `test` - launch test runner
+## Архитектура
 
-## Inspiration
+Код сгруппирован по предметным модулям в духе Feature-Driven / Bulletproof React. Проект использует слои `pages`, `entities` и `shared`.
 
-- [Create React App](https://github.com/facebook/create-react-app/tree/main/packages/cra-template)
-- [Vite](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react)
-- [Vitest](https://github.com/vitest-dev/vitest/tree/main/examples/react-testing-lib)
+| Где искать                                 | Что там находится                                                                                                             |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| [`src/main.tsx`](./src/main.tsx)           | Точка входа, тема MUI, провайдеры Redux и роутера, общие уведомления                                                          |
+| [`src/app`](./src/app)                     | Маршруты, настройка Redux и инициализация i18next                                                                             |
+| [`src/pages`](./src/pages)                 | Экраны и компоненты, используемые конкретной страницей                                                                        |
+| [`src/features/auth`](./src/features/auth) | API входа и выхода, состояние сессии и `RequireAuth`                                                                          |
+| [`src/entities`](./src/entities)           | Модули пользователя, роли и LDAP-сервера. `api` содержит эндпоинты RTK Query, `model` — типы данных, `utils` — утилиты модуля |
+| [`src/shared`](./src/shared)               | Базовый API-клиент, уведомления и общие компоненты интерфейса                                                                 |
+| [`src/locales`](./src/locales)             | Тексты интерфейса на русском и английском                                                                                     |
+
+На страницах доменные модули обычно импортируются через их `index.ts`. Эндпоинты подключаются к общему RTK Query API через `baseApi.injectEndpoints`. Например, [`getUserPhotoUrl`](./src/entities/user/utils/getUserPhotoUrl.ts) живёт внутри `entities/user/utils` и доступен страницам через `entities/user/index.ts`.
+
+## Маршруты
+
+| Маршрут                                  | Экран                                               |
+| ---------------------------------------- | --------------------------------------------------- |
+| `/`                                      | Вход                                                |
+| `/main`                                  | Навигация и выход                                   |
+| `/me`                                    | Профиль текущего пользователя                       |
+| `/users`, `/roles`, `/ldap-servers`      | Списки для администрирования                        |
+| `/<раздел>/create`, `/<раздел>/:id/edit` | Создание и редактирование в каждом из трёх разделов |
+
+Маршруты объявлены в [app/router](./src/app/router/index.tsx). `RequireAuth` проверяет наличие профиля в Redux, а права на операции администрирования проверяет API.
+
+## Основные сценарии
+
+### Вход и сессия
+
+`LoginPage` отправляет форму на `POST /auth/login`. После успешного входа страница сбрасывает предыдущее состояние сессии, запрашивает `GET /auth/me` и сохраняет профиль в Redux и `sessionStorage` под ключом `auth_user`. Cookie сессии устанавливает сервер. `baseApi` отправляет запросы с `credentials: "include"`.
+
+При выходе или ответе `401` от защищённого API вызывается `clearUser`. Middleware в [store.ts](./src/app/store.ts) сбрасывает кэш RTK Query и уведомления. При ответе `400` клиент может вывести текст из `detail`. Эндпоинт может указать `skipErrorNotification`, если экран обрабатывает ошибку сам.
+
+### Списки и формы
+
+Списки передают серверу `page`, `limit`, `sort_by` и `sort_order`. На десктопе сортировка доступна в заголовках таблиц, на мобильном — в выпадающем списке. Общие компоненты и состояние сортировки находятся в [shared/ui/list-sort](./src/shared/ui/list-sort).
+
+В [userApi.ts](./src/entities/user/api/userApi.ts) успешный `PATCH` инвалидирует тег списка `Users/LIST`. Форма редактирования загружает пользователя отдельным запросом по ID. Благодаря `keepUnusedDataFor: 0` данные карточки удаляются из кэша после закрытия формы, а при повторном открытии загружаются заново.
+
+### Фото пользователей
+
+- В админской форме локального пользователя можно выбрать фото и обрезать его в `AvatarCropDialog`. Диалог создаёт квадрат 512 × 512 через Canvas и передаёт его в предпросмотр формы. Для LDAP-пользователя форма показывает сохранённое фото или заглушку.
+- При сохранении форма сначала сохраняет пользователя, затем отправляет файл на `POST /auth/admin/rest/users/{id}/photo` через `multipart/form-data` с полем `file`. Если загрузка фото не удалась после создания пользователя, повторная попытка использует уже полученный ID.
+- Бэкенд отдаёт изображения через `GET /auth/users/{id}/photo`. Список и мобильные карточки запрашивают `size=avatar`, профиль запрашивает `size=profile`. Когда `photo_updated_at` отсутствует, в списке отображается первая буква ФИО или логина.
+- `getUserPhotoUrl` добавляет `v=photo_updated_at` через `URLSearchParams`. После загрузки фото кэш списка инвалидируется. С новой датой список формирует новый URL, и браузер загружает обновлённое изображение.
+
+## Проверки и сборка
+
+Команды выполняются из `authorization-module-ui`.
+
+| Команда                | Что делает                                                    |
+| ---------------------- | ------------------------------------------------------------- |
+| `npm run type-check`   | Проверяет типы TypeScript                                     |
+| `npm run lint`         | Запускает ESLint                                              |
+| `npm run format:check` | Проверяет форматирование Prettier                             |
+| `npm run test`         | Запускает Vitest с jsdom и настройками из `src/setupTests.ts` |
+| `npm run build`        | Проверяет типы и собирает приложение в `dist/`                |
+| `npm run preview`      | Локально раздаёт `dist/` для проверки сборки                  |
+
+Новые строки интерфейса добавляйте в оба файла переводов. При изменении авторизации или фотографий проверьте вход и выход, список пользователей на десктопе и мобильном, создание и редактирование пользователя и обновление аватара в списке после сохранения.

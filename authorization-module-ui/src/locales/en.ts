@@ -51,6 +51,7 @@ export default {
   },
   users: {
     title: "Users",
+    avatar: "Avatar",
     showDeleted: "Show deleted users",
     loadError: "Failed to load users",
     empty: "No users",

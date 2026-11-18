@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import {
+  Avatar,
   Box,
   Button,
   Card,
@@ -30,6 +31,7 @@ import {
 import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
+  getUserPhotoUrl,
   useDeleteUserMutation,
   useListUsersQuery,
   useRestoreUserMutation,
@@ -54,6 +56,22 @@ const tableFields = [
   "is_active",
   "deleted_at",
 ] as const satisfies readonly UserSortField[]
+
+const UserAvatar = ({ user }: { user: User }) => {
+  const initial =
+    Array.from(user.full_name?.trim() ?? "").at(0) ??
+    Array.from(user.username.trim()).at(0)
+
+  return (
+    <Avatar
+      aria-hidden="true"
+      src={getUserPhotoUrl(user, "avatar")}
+      sx={{ width: 32, height: 32, flexShrink: 0, fontSize: "0.875rem" }}
+    >
+      {initial?.toUpperCase()}
+    </Avatar>
+  )
+}
 
 type UserActionsProps = {
   user: User
@@ -259,12 +277,21 @@ export const UsersPage = () => {
             {users.map(user => (
               <Card key={user.id}>
                 <CardContent>
-                  <Typography variant="h6" component="div">
-                    {user.full_name ?? user.username}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {user.username}
-                  </Typography>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <UserAvatar user={user} />
+                    <Box sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                      <Typography variant="h6" component="div">
+                        {user.full_name ?? user.username}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {user.username}
+                      </Typography>
+                    </Box>
+                  </Stack>
                   <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
                     <Chip
                       label={
@@ -335,6 +362,7 @@ export const UsersPage = () => {
           <Table size="small" aria-busy={isFetching}>
             <TableHead>
               <TableRow>
+                <TableCell align="center">{t("users.avatar")}</TableCell>
                 {tableFields.map(field => (
                   <SortableTableCell
                     key={field}
@@ -350,6 +378,11 @@ export const UsersPage = () => {
             <TableBody>
               {users.map(user => (
                 <TableRow key={user.id} hover>
+                  <TableCell align="center">
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
+                      <UserAvatar user={user} />
+                    </Box>
+                  </TableCell>
                   <TableCell>{user.id}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.full_name ?? "—"}</TableCell>
