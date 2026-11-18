@@ -34,6 +34,7 @@ export const AvatarCropDialog = ({
 }: AvatarCropDialogProps) => {
   const { t } = useTranslation()
   const titleId = useId()
+  const cropHintId = useId()
   const fullScreen = useMediaQuery((theme: Theme) =>
     theme.breakpoints.down("sm"),
   )
@@ -117,14 +118,28 @@ export const AvatarCropDialog = ({
       <DialogContent dividers>
         <Stack spacing={2}>
           {image && (
-            <>
+            <Stack
+              spacing={1.5}
+              sx={{
+                width: "min(100%, clamp(180px, 52dvh, 420px))",
+                alignSelf: "center",
+              }}
+            >
               <Box
                 sx={{
                   position: "relative",
-                  height: "clamp(180px, 52dvh, 420px)",
+                  aspectRatio: "1 / 1",
                   bgcolor: "grey.900",
                   borderRadius: 1,
                   overflow: "hidden",
+                  "&::after": {
+                    content: '""',
+                    position: "absolute",
+                    inset: 0,
+                    border: "1px solid rgba(255, 255, 255, 0.8)",
+                    borderRadius: "inherit",
+                    pointerEvents: "none",
+                  },
                 }}
               >
                 <Cropper
@@ -133,6 +148,7 @@ export const AvatarCropDialog = ({
                   zoom={zoom}
                   maxZoom={MAX_ZOOM}
                   aspect={1}
+                  objectFit="cover"
                   cropShape="round"
                   showGrid={false}
                   zoomWithScroll={false}
@@ -142,6 +158,7 @@ export const AvatarCropDialog = ({
                   cropperProps={{
                     role: "group",
                     "aria-label": t("userPhoto.cropArea"),
+                    "aria-describedby": cropHintId,
                   }}
                   onCropChange={setCrop}
                   onZoomChange={setZoom}
@@ -150,6 +167,13 @@ export const AvatarCropDialog = ({
                   }}
                 />
               </Box>
+              <Typography
+                id={cropHintId}
+                variant="caption"
+                color="text.secondary"
+              >
+                {t("userPhoto.cropHint")}
+              </Typography>
               <Box sx={{ px: 1 }}>
                 <Typography variant="body2">{t("userPhoto.zoom")}</Typography>
                 <Slider
@@ -163,7 +187,7 @@ export const AvatarCropDialog = ({
                   }}
                 />
               </Box>
-            </>
+            </Stack>
           )}
           {!image && !error && (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

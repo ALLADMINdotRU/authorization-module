@@ -25,7 +25,6 @@ import type {
   LdapServerCreate,
   LdapServerUpdate,
 } from "../../../entities/ldap-server"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 const buildLdapServerSchema = (t: TFunction) =>
   z.object({
@@ -153,9 +152,6 @@ export const LdapServerFormPage = () => {
     void handleSubmit(onSubmit)(event)
   }
 
-  const title = isEdit
-    ? t("ldapServers.editTitle")
-    : t("ldapServers.createTitle")
   const isSubmitting = isCreating || isUpdating
 
   if (isEdit && isLoading) {
@@ -168,7 +164,6 @@ export const LdapServerFormPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={title} />
       <Box
         component="form"
         onSubmit={handleFormSubmit}

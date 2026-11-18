@@ -21,7 +21,6 @@ import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { getUserPhotoUrl, type UserProfile } from "../../../entities/user"
 import { useMeQuery } from "../../../features/auth"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 type ProfileField = readonly [label: string, value: string | number | null]
 
@@ -272,7 +271,6 @@ export const ProfilePage = () => {
       >
         {t("common.back")}
       </Button>
-      <PageHeader title={t("navigation.profile")} />
 
       {isFetching && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>

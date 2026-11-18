@@ -20,7 +20,6 @@ import {
   useUpdateRoleMutation,
 } from "../../../entities/role"
 import type { RoleCreate, RoleUpdate } from "../../../entities/role"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 const buildRoleSchema = (t: TFunction) =>
   z.object({
@@ -94,7 +93,6 @@ export const RoleFormPage = () => {
     void handleSubmit(onSubmit)(event)
   }
 
-  const title = isEdit ? t("roles.editTitle") : t("roles.createTitle")
   const isSubmitting = isCreating || isUpdating
 
   if (isEdit && isLoading) {
@@ -107,7 +105,6 @@ export const RoleFormPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={title} />
       <Box
         component="form"
         onSubmit={handleFormSubmit}

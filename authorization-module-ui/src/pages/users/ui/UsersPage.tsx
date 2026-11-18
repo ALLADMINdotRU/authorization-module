@@ -43,19 +43,19 @@ import {
   SortableTableCell,
   useListSort,
 } from "../../../shared/ui/list-sort"
-import { PageHeader } from "../../../shared/ui/page-header"
 
 const tableFields = [
   "id",
-  "username",
+  "avatar",
   "full_name",
+  "username",
   "email",
   "company",
   "department",
   "position",
   "is_active",
   "deleted_at",
-] as const satisfies readonly UserSortField[]
+] as const satisfies readonly (UserSortField | "avatar")[]
 
 const UserAvatar = ({ user }: { user: User }) => {
   const initial =
@@ -218,7 +218,6 @@ export const UsersPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <PageHeader title={t("users.title")} />
       <Box
         sx={{
           mb: 2,
@@ -362,30 +361,35 @@ export const UsersPage = () => {
           <Table size="small" aria-busy={isFetching}>
             <TableHead>
               <TableRow>
-                <TableCell align="center">{t("users.avatar")}</TableCell>
-                {tableFields.map(field => (
-                  <SortableTableCell
-                    key={field}
-                    field={field}
-                    label={sortLabels[field]}
-                    sort={sort}
-                    onSort={sortBy}
-                  />
-                ))}
+                {tableFields.map(field =>
+                  field === "avatar" ? (
+                    <TableCell key={field} align="center">
+                      {t("users.avatar")}
+                    </TableCell>
+                  ) : (
+                    <SortableTableCell
+                      key={field}
+                      field={field}
+                      label={sortLabels[field]}
+                      sort={sort}
+                      onSort={sortBy}
+                    />
+                  ),
+                )}
                 <TableCell>{t("common.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {users.map(user => (
                 <TableRow key={user.id} hover>
+                  <TableCell>{user.id}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: "flex", justifyContent: "center" }}>
                       <UserAvatar user={user} />
                     </Box>
                   </TableCell>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.username}</TableCell>
                   <TableCell>{user.full_name ?? "—"}</TableCell>
+                  <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email ?? "—"}</TableCell>
                   <TableCell>{user.company ?? "—"}</TableCell>
                   <TableCell>{user.department ?? "—"}</TableCell>
