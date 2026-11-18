@@ -8,7 +8,7 @@ export {
   useUpdateUserMutation,
   useUploadUserPhotoMutation,
 } from "./api/userApi"
-export { getUserPhotoUrl } from "./model/getUserPhotoUrl"
+export { getUserPhotoUrl } from "./utils/getUserPhotoUrl"
 export type {
   ListUsersArgs,
   Page,
