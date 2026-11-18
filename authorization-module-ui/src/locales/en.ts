@@ -69,6 +69,7 @@ export default {
     photoError: "Couldn't open the image",
     cropTitle: "Adjust profile photo",
     cropArea: "Photo crop area",
+    cropHint: "The square is your profile photo. The circle is your avatar.",
     cropError: "Couldn't crop the image",
     zoom: "Zoom",
     applyCrop: "Apply",
