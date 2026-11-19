@@ -4,7 +4,6 @@
 import base64                                                               # base64 — понадобится для кодирования фото (thumbnailPhoto) в строку
 from datetime import datetime, timezone                                     # datetime, timezone — для преобразования whenCreated/whenChanged
 import logging
-from ldap3.extend.standard.PagedSearch import paged_search_generator
 from .connection import LDAPConnection                                      # Импортируем НАШ LDAPConnection
 from .exceptions import LDAPSearchError                                     # Импортируем НАШЕ исключение для ошибок поиска
 
@@ -196,9 +195,11 @@ class LDAPRepository:
         conn = self._connection._connection
         base_dn = self._connection.config.base_dn
 
-        # ── 1. Собираем ВСЕ записи постранично (paged search) ──
+        # ── 1. Обычный поиск — заполняет conn.entries (Entry-объекты) ──
+        conn.search(base_dn, search_filter, attributes=DEFAULT_ATTRIBUTES)
+
         all_entries = []
-        for entry in paged_search_generator(conn, base_dn, search_filter, attributes=DEFAULT_ATTRIBUTES, paged_size=limit):
+        for entry in conn.entries:
             all_entries.append(_map_entry_to_dict(entry, DEFAULT_ATTRIBUTES))
 
         # ── 2. Пагинация уже в Python (slice) ──
