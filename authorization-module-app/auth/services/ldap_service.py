@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import User, Role, LDAPServer
-from ..exceptions import LDAPServerAlreadyExists, LDAPConnectionFailed
+from ..exceptions import LDAPServerAlreadyExists, LDAPConnectionFailed,LDAPUserNotFound
 from . import photo_service
 
 from ..ldap import (
@@ -343,6 +343,125 @@ async def _create_user_from_ldap(db: AsyncSession, username: str, server: LDAPSe
 
     logger.info(f"Создан LDAP-пользователь: {full_username}")
     return user
+
+
+# ═══════════════════════════════════════════════════════════════
+# Импортировать пользователя домена в БД вручную.
+# ═══════════════════════════════════════════════════════════════
+async def import_ldap_user(db: AsyncSession, server: LDAPServer, username: str, is_active: bool = True) -> User:
+    """
+    Импортировать пользователя домена в БД вручную.
+
+    - если пользователя ещё нет в БД — создаём (с фото, ролью user);
+    - если уже есть — просто обновляем is_active (разблокировать/заблокировать).
+
+    Args:
+        db: сессия БД
+        server: LDAP-сервер
+        username: sAMAccountName (короткий логин)
+        is_active: False = добавить и сразу заблокировать (запретить вход)
+
+    Returns:
+        User — созданный (или обновлённый) пользователь
+
+    Raises:
+        LDAPUserNotFound: если пользователя нет в домене
+    """
+    full_username = f"{username}@{server.domain}" if server.domain else username
+
+    # ── 1. Уже есть в БД? ──
+    result = await db.execute(select(User).where(User.username == full_username))
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        existing.is_active = is_active
+        await db.commit()
+        await db.refresh(existing)
+        logger.info("Обновлён is_active=%s у LDAP-пользователя '%s'", is_active, full_username)
+        return existing
+
+    # ── 2. Нет — создаём через _create_user_from_ldap (с фото и ролью) ──
+    user = await _create_user_from_ldap(db, username, server)
+    if not user:
+        raise LDAPUserNotFound(username)
+
+    user.is_active = is_active
+    await db.commit()
+    await db.refresh(user)
+
+    logger.info("Импортирован LDAP-пользователь '%s' (is_active=%s)", full_username, is_active)
+    return user
+
+
+# ═══════════════════════════════════════════════════════════════
+# Получить список пользователей домена (из LDAP) с пагинацией
+# ═══════════════════════════════════════════════════════════════
+async def get_ldap_users(
+    db: AsyncSession,
+    server: LDAPServer,
+    page: int = 1,
+    limit: int = 20,
+) -> tuple[list[dict], int]:
+    """
+    Получить список пользователей домена (из LDAP) с пагинацией.
+
+    Для каждого доменного пользователя добавляем пометки:
+    - in_db     — есть ли уже в нашей БД;
+    - is_active — активен ли (True = не заблокирован, вход разрешён).
+
+    Args:
+        db: сессия БД
+        server: LDAP-сервер (откуда берём пользователей)
+        page: номер страницы (начиная с 1)
+        limit: размер страницы
+
+    Returns:
+        (items, total):
+            items — список словарей доменных пользователей
+            total — сколько всего пользователей в домене
+    """
+
+    # ── 1. Загружаем ВСЕХ LDAP-пользователей из БД одним запросом ──
+    # Чтобы потом не дёргать БД на каждого доменного пользователя,
+    # берём всех сразу и кладём в словарь {username: user}.
+    query = select(User).where(User.auth_method == "ldap")
+    if server.domain:
+        query = query.where(User.username.endswith(f"@{server.domain}"))
+
+    result = await db.execute(query)
+    db_users = {u.username: u for u in result.scalars().all()}
+
+    # ── 2. Ищем пользователей в LDAP (синхронно → в отдельном потоке) ──
+    search_filter = server.search_filter or "(objectClass=person)"
+    loop = asyncio.get_running_loop()
+
+    def _search():
+        with LDAPConnection(build_ldap_config(server)) as conn:
+            repo = LDAPRepository(conn)
+            return repo.search_users_paged(search_filter, page, limit)
+
+    items, total = await loop.run_in_executor(None, _search)
+
+    # ── 3. Добавляем пометки (in_db, is_active) к каждому ──
+    domain_users = []
+    for ldap_user in items:
+        sam = ldap_user.get("sAMAccountName")
+        # В БД username хранится как "sam@domain" (см. _create_user_from_ldap)
+        full_username = f"{sam}@{server.domain}" if server.domain else sam
+
+        db_user = db_users.get(full_username)
+
+        domain_users.append({
+            "username": sam,
+            "full_name": ldap_user.get("cn") or ldap_user.get("displayName"),
+            "email": ldap_user.get("mail"),
+            "thumbnail": ldap_user.get("thumbnailPhoto"),   # base64 аватар
+            "in_db": db_user is not None,
+            "is_active": db_user.is_active if db_user else True,
+        })
+
+    return domain_users, total
+
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -183,6 +183,26 @@ class LDAPServerUpdate(ORMModel):
     priority: int | None = None
     auto_login_enabled: bool | None = None
 
+# ═══════════════════════════════════════════════════════════════
+# СХЕМЫ ПОЛЬЗОВАТЕЛЕЙ ДОМЕНА (LDAP)
+# ═══════════════════════════════════════════════════════════════
+
+class LDAPUserRead(ORMModel):
+    """Пользователь домена (из LDAP) — что возвращаем в списке."""
+    username: str                      # sAMAccountName (короткий логин)
+    full_name: str | None = None       # ФИО (cn/displayName)
+    email: str | None = None           # почта
+    thumbnail: str | None = None       # base64 аватара (thumbnailPhoto)
+    in_db: bool                        # уже есть в нашей БД?
+    is_active: bool                    # активен (True = вход разрешён)
+
+
+class LDAPUserImport(ORMModel):
+    """Что принимаем при импорте пользователя домена в БД."""
+    username: str                      # sAMAccountName — кого импортировать
+    is_active: bool = True             # False = добавить и сразу заблокировать
+
+
 
 # ═══════════════════════════════════════════════════════════════
 # СХЕМЫ АУТЕНТИФИКАЦИИ (JWT) — понадобятся на Этапе 5

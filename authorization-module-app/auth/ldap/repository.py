@@ -4,6 +4,7 @@
 import base64                                                               # base64 — понадобится для кодирования фото (thumbnailPhoto) в строку
 from datetime import datetime, timezone                                     # datetime, timezone — для преобразования whenCreated/whenChanged
 import logging
+from ldap3.extend.standard.PagedSearch import paged_search_generator
 from .connection import LDAPConnection                                      # Импортируем НАШ LDAPConnection
 from .exceptions import LDAPSearchError                                     # Импортируем НАШЕ исключение для ошибок поиска
 
@@ -167,6 +168,45 @@ class LDAPRepository:
 
         logger.info(f"Найдено пользователей: {len(users)} (фильтр: {search_filter})")
         return users
+
+
+    # ═══════════════════════════════════════════════════════════════
+    # МЕТОД: search_users_paged
+    # ═══════════════════════════════════════════════════════════════
+    def search_users_paged(self, search_filter: str, page: int = 1, limit: int = 20) -> tuple[list[dict], int]:
+        """
+        Поиск пользователей в LDAP с пагинацией.
+
+        Использует paged search — LDAP отдаёт записи ПОСТРАНИЧНО,
+        а не всё сразу (важно для больших доменов).
+
+        Args:
+            search_filter: LDAP-фильтр (например "(objectClass=person)")
+            page: номер страницы (начиная с 1)
+            limit: размер страницы
+
+        Returns:
+            (items, total):
+                items — список словарей на текущей странице
+                total — сколько всего записей найдено
+        """
+        if not self._connection.is_connected:
+            raise LDAPSearchError("Соединение с LDAP не установлено")
+
+        conn = self._connection._connection
+        base_dn = self._connection.config.base_dn
+
+        # ── 1. Собираем ВСЕ записи постранично (paged search) ──
+        all_entries = []
+        for entry in paged_search_generator(conn, base_dn, search_filter, attributes=DEFAULT_ATTRIBUTES, paged_size=limit):
+            all_entries.append(_map_entry_to_dict(entry, DEFAULT_ATTRIBUTES))
+
+        # ── 2. Пагинация уже в Python (slice) ──
+        total = len(all_entries)
+        start = (page - 1) * limit
+        items = all_entries[start:start + limit]
+
+        return items, total
 
 
 # ═══════════════════════════════════════════════════════════════
