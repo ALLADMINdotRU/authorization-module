@@ -64,6 +64,10 @@ async def get_all_roles(
     return items, total
 
 
+async def get_role_by_id(db: AsyncSession, role_id: int) -> Role | None:
+    """Найти роль по ID (или None, если не найдена)."""
+    return await db.get(Role, role_id)
+
 
 async def create_role(db: AsyncSession, name: str, description: str | None = None) -> Role:
     """
