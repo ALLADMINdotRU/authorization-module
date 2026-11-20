@@ -15,6 +15,7 @@ export const authApi = baseApi.injectEndpoints({
           grant_type: "password",
         }).toString(),
       }),
+      extraOptions: { changesSession: true },
     }),
     me: build.query<UserProfile, undefined>({
       query: () => ({ url: "/auth/me", method: "GET" }),
@@ -23,6 +24,7 @@ export const authApi = baseApi.injectEndpoints({
     }),
     logout: build.mutation<undefined, undefined>({
       query: () => ({ url: "/auth/logout", method: "POST" }),
+      extraOptions: { changesSession: true },
     }),
   }),
 })
