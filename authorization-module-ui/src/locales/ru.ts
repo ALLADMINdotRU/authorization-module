@@ -38,6 +38,14 @@ export default {
     roles: "Роли",
     ldapServers: "LDAP-серверы",
   },
+  userMenu: {
+    label: "Меню пользователя",
+    russian: "Русский",
+    english: "Английский",
+    theme: "Тема",
+    light: "Светлая",
+    dark: "Тёмная",
+  },
   login: {
     title: "Модуль авторизации",
     invalidCredentials: "Неверный логин или пароль",

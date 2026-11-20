@@ -18,6 +18,8 @@ export const authApi = baseApi.injectEndpoints({
     }),
     me: build.query<UserProfile, undefined>({
       query: () => ({ url: "/auth/me", method: "GET" }),
+      providesTags: result =>
+        result ? [{ type: "Profile", id: result.id }] : [],
     }),
     logout: build.mutation<undefined, undefined>({
       query: () => ({ url: "/auth/logout", method: "POST" }),
