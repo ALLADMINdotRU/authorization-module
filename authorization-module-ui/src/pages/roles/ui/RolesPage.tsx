@@ -30,6 +30,7 @@ import {
   useListRolesQuery,
 } from "../../../entities/role"
 import type { Role, RoleSortField } from "../../../entities/role"
+import { getApiErrorDetail } from "../../../shared/api/baseApi"
 import {
   ListProgress,
   ListSortControls,
@@ -91,7 +92,9 @@ export const RolesPage = () => {
   const [deleteRole, { isLoading: isDeleting }] = useDeleteRoleMutation()
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
   const [deleteError, setDeleteError] = useState(false)
-  const data = currentData ?? (isFetching ? lastData : undefined)
+  const data = error
+    ? undefined
+    : (currentData ?? (isFetching ? lastData : undefined))
   const roles = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
@@ -146,23 +149,26 @@ export const RolesPage = () => {
         <Button component={Link} to="/main" variant="outlined">
           {t("common.back")}
         </Button>
-        <Button component={Link} to="/roles/create" variant="contained">
-          {t("common.create")}
-        </Button>
+        {data && (
+          <Button component={Link} to="/roles/create" variant="contained">
+            {t("common.create")}
+          </Button>
+        )}
       </Box>
 
-      {isMobile && (
+      {data && isMobile && (
         <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
-      <ListProgress isFetching={isFetching} />
+      <ListProgress isFetching={isFetching && data !== undefined} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {t("roles.loadError")}
+          {getApiErrorDetail("data" in error ? error.data : undefined) ??
+            t("roles.loadError")}
         </Typography>
       )}
 
-      {!isFetching && !error && roles.length === 0 && (
+      {data && !isFetching && roles.length === 0 && (
         <Typography color="text.secondary">{t("roles.empty")}</Typography>
       )}
 
@@ -198,7 +204,7 @@ export const RolesPage = () => {
         </>
       )}
 
-      {!isMobile && (roles.length > 0 || isFetching) && (
+      {!isMobile && roles.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small" aria-busy={isFetching}>
             <TableHead>
