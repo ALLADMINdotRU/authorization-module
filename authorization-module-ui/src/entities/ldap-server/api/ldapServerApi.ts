@@ -1,10 +1,14 @@
+import type { UserProfile } from "../../user"
 import { baseApi } from "../../../shared/api/baseApi"
 import type { Page } from "../../../shared/api/types"
 import type {
+  ImportLdapUserArgs,
   LdapServer,
   LdapServerCreate,
   LdapServerUpdate,
+  LdapUser,
   ListLdapServersArgs,
+  ListLdapUsersArgs,
 } from "../model/types"
 
 const ldapServersListTag = { type: "LdapServers", id: "LIST" } as const
@@ -20,6 +24,33 @@ export const ldapServerApi = baseApi.injectEndpoints({
         params: { page, limit, sort_by, sort_order },
       }),
       providesTags: [ldapServersListTag],
+    }),
+    listLdapUsers: build.query<Page<LdapUser>, ListLdapUsersArgs>({
+      query: ({ serverId, page, limit }) => ({
+        url: `/auth/admin/rest/ldap-servers/${String(serverId)}/users`,
+        params: { page, limit },
+      }),
+      extraOptions: { skipErrorNotification: true },
+      providesTags: (_result, _error, { serverId }) => [
+        { type: "LdapUsers", id: serverId },
+      ],
+    }),
+    importLdapUser: build.mutation<UserProfile, ImportLdapUserArgs>({
+      query: ({ serverId, username, is_active }) => ({
+        url: `/auth/admin/rest/ldap-servers/${String(serverId)}/import`,
+        method: "POST",
+        body: { username, is_active },
+      }),
+      extraOptions: { skipErrorNotification: true },
+      invalidatesTags: (user, _error, { serverId }) =>
+        user
+          ? [
+              { type: "LdapUsers", id: serverId },
+              { type: "Users", id: "LIST" },
+              { type: "Users", id: user.id },
+              { type: "Profile", id: user.id },
+            ]
+          : [],
     }),
     getLdapServer: build.query<LdapServer, number>({
       query: id => ({
@@ -74,6 +105,8 @@ export const ldapServerApi = baseApi.injectEndpoints({
 
 export const {
   useListLdapServersQuery,
+  useListLdapUsersQuery,
+  useImportLdapUserMutation,
   useGetLdapServerQuery,
   useCreateLdapServerMutation,
   useUpdateLdapServerMutation,

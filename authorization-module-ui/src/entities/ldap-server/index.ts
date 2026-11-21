@@ -1,6 +1,8 @@
 export {
   ldapServerApi,
   useListLdapServersQuery,
+  useListLdapUsersQuery,
+  useImportLdapUserMutation,
   useGetLdapServerQuery,
   useCreateLdapServerMutation,
   useUpdateLdapServerMutation,
@@ -13,4 +15,5 @@ export type {
   LdapServerSortField,
   LdapServerUpdate,
   ListLdapServersArgs,
+  LdapUser,
 } from "./model/types"

@@ -92,6 +92,14 @@ const LdapServerActions = ({
         {t("ldapServers.testConnection")}
       </Button>
       <Button
+        component={Link}
+        to={`/ldap-servers/${String(server.id)}/users`}
+        size="small"
+        variant="outlined"
+      >
+        {t("navigation.users")}
+      </Button>
+      <Button
         size="small"
         variant="outlined"
         color="error"

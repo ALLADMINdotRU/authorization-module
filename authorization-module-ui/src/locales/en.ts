@@ -133,6 +133,17 @@ export default {
     testSuccess: "Connection successful",
     testFailure: "Connection failed",
   },
+  ldapUsers: {
+    title: "Domain users",
+    empty: "No domain users",
+    loadError: "Failed to load domain users",
+    actionError: "Failed to update the domain user",
+    notImported: "Not imported",
+    blocked: "Blocked",
+    add: "Add",
+    block: "Block",
+    unblock: "Unblock",
+  },
   ldapServerForm: {
     domain: "Domain",
     baseDn: "Base DN",

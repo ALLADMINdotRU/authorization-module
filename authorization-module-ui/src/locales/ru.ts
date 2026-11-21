@@ -133,6 +133,17 @@ export default {
     testSuccess: "Подключение успешно",
     testFailure: "Не удалось подключиться",
   },
+  ldapUsers: {
+    title: "Пользователи домена",
+    empty: "Нет пользователей домена",
+    loadError: "Не удалось загрузить пользователей домена",
+    actionError: "Не удалось обновить пользователя домена",
+    notImported: "Не добавлен",
+    blocked: "Заблокирован",
+    add: "Добавить",
+    block: "Заблокировать",
+    unblock: "Разблокировать",
+  },
   ldapServerForm: {
     domain: "Домен",
     baseDn: "Base DN",

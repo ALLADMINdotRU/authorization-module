@@ -40,3 +40,24 @@ export type ListLdapServersArgs = Partial<ListSort<LdapServerSortField>> & {
   page?: number
   limit?: number
 }
+
+export type LdapUser = {
+  username: string
+  full_name: string | null
+  email: string | null
+  thumbnail: string | null
+  in_db: boolean
+  is_active: boolean
+}
+
+export type ListLdapUsersArgs = {
+  serverId: number
+  page: number
+  limit: number
+}
+
+export type ImportLdapUserArgs = {
+  serverId: number
+  username: string
+  is_active: boolean
+}

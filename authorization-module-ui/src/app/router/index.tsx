@@ -1,6 +1,10 @@
 import { createBrowserRouter, type RouteObject } from "react-router-dom"
 import { RequireAuth } from "../../features/auth"
-import { LdapServerFormPage, LdapServersPage } from "../../pages/ldap-servers"
+import {
+  LdapServerFormPage,
+  LdapServersPage,
+  LdapUsersPage,
+} from "../../pages/ldap-servers"
 import { LoginPage } from "../../pages/login"
 import { MainPage } from "../../pages/main"
 import { ProfilePage } from "../../pages/profile"
@@ -66,6 +70,11 @@ const authenticatedPages = [
     path: "/ldap-servers/:id/edit",
     element: <LdapServerFormPage />,
     handle: { titleKey: "ldapServers.editTitle" },
+  },
+  {
+    path: "/ldap-servers/:id/users",
+    element: <LdapUsersPage />,
+    handle: { titleKey: "ldapUsers.title" },
   },
 ] satisfies (RouteObject & { handle: PageRouteHandle })[]
 
