@@ -22,7 +22,7 @@ export const PageHeader = ({ title, actions }: PageHeaderProps) => (
     <Typography
       variant="h4"
       component="h1"
-      sx={{ overflowWrap: "anywhere", minWidth: 0 }}
+      sx={{ flex: 1, overflowWrap: "anywhere", minWidth: 0 }}
     >
       {title}
     </Typography>

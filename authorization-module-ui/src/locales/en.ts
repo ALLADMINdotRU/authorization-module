@@ -38,6 +38,14 @@ export default {
     roles: "Roles",
     ldapServers: "LDAP servers",
   },
+  userMenu: {
+    label: "User menu",
+    russian: "Russian",
+    english: "English",
+    theme: "Theme",
+    light: "Light",
+    dark: "Dark",
+  },
   login: {
     title: "Authorization module",
     invalidCredentials: "Invalid username or password",
@@ -124,6 +132,17 @@ export default {
     testConnection: "Test connection",
     testSuccess: "Connection successful",
     testFailure: "Connection failed",
+  },
+  ldapUsers: {
+    title: "Domain users",
+    empty: "No domain users",
+    loadError: "Failed to load domain users",
+    actionError: "Failed to update the domain user",
+    notImported: "Not imported",
+    blocked: "Blocked",
+    add: "Add",
+    block: "Block",
+    unblock: "Unblock",
   },
   ldapServerForm: {
     domain: "Domain",

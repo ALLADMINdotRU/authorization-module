@@ -38,6 +38,14 @@ export default {
     roles: "Роли",
     ldapServers: "LDAP-серверы",
   },
+  userMenu: {
+    label: "Меню пользователя",
+    russian: "Русский",
+    english: "Английский",
+    theme: "Тема",
+    light: "Светлая",
+    dark: "Тёмная",
+  },
   login: {
     title: "Модуль авторизации",
     invalidCredentials: "Неверный логин или пароль",
@@ -124,6 +132,17 @@ export default {
     testConnection: "Проверить подключение",
     testSuccess: "Подключение успешно",
     testFailure: "Не удалось подключиться",
+  },
+  ldapUsers: {
+    title: "Пользователи домена",
+    empty: "Нет пользователей домена",
+    loadError: "Не удалось загрузить пользователей домена",
+    actionError: "Не удалось обновить пользователя домена",
+    notImported: "Не добавлен",
+    blocked: "Заблокирован",
+    add: "Добавить",
+    block: "Заблокировать",
+    unblock: "Разблокировать",
   },
   ldapServerForm: {
     domain: "Домен",

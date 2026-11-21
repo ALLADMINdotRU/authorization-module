@@ -44,15 +44,17 @@ export const LoginPage = () => {
 
   return (
     <Box
-      sx={{
+      sx={theme => ({
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #fdfdfd 0%, #bdc5f3 100%)",
         gap: 2,
-      }}
+        ...theme.applyStyles("light", {
+          backgroundImage: "linear-gradient(135deg, #fdfdfd 0%, #bdc5f3 100%)",
+        }),
+      })}
     >
       <Box sx={{ position: "fixed", top: 16, right: 16 }}>
         <LanguageSwitcher />

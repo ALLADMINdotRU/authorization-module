@@ -43,7 +43,8 @@ export const userApi = baseApi.injectEndpoints({
         method: "PATCH",
         body: data,
       }),
-      invalidatesTags: (_result, error) => (error ? [] : [usersListTag]),
+      invalidatesTags: (_result, error, { id }) =>
+        error ? [] : [usersListTag, { type: "Profile", id }],
     }),
     uploadUserPhoto: build.mutation<
       { has_photo: boolean; url: string | null },
@@ -61,7 +62,8 @@ export const userApi = baseApi.injectEndpoints({
         }
       },
       extraOptions: { skipErrorNotification: true },
-      invalidatesTags: (_result, error) => (error ? [] : [usersListTag]),
+      invalidatesTags: (_result, error, { id }) =>
+        error ? [] : [usersListTag, { type: "Profile", id }],
     }),
     deleteUser: build.mutation<undefined, number>({
       query: id => ({

@@ -1,11 +1,12 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material"
+import { CssBaseline, ThemeProvider } from "@mui/material"
 import { Provider } from "react-redux"
 import { RouterProvider } from "react-router-dom"
 import "./app/i18n"
 import { router } from "./app/router"
 import { store } from "./app/store"
+import { appTheme } from "./app/theme"
 import { NotificationSnackbar } from "./shared/notifications"
 import "./main.css"
 const container = document.getElementById("root")
@@ -15,21 +16,7 @@ if (container) {
 
   root.render(
     <StrictMode>
-      <ThemeProvider
-        theme={createTheme({
-          components: {
-            MuiCssBaseline: {
-              styleOverrides: {
-                body: {
-                  background:
-                    "linear-gradient(135deg, #fdfdfd 0%, #d7dcf7 100%)",
-                  minHeight: "100vh",
-                },
-              },
-            },
-          },
-        })}
-      >
+      <ThemeProvider theme={appTheme} defaultMode="light" noSsr>
         <CssBaseline />
         <Provider store={store}>
           <RouterProvider router={router} />

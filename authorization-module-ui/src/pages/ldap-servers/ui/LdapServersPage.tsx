@@ -92,6 +92,14 @@ const LdapServerActions = ({
         {t("ldapServers.testConnection")}
       </Button>
       <Button
+        component={Link}
+        to={`/ldap-servers/${String(server.id)}/users`}
+        size="small"
+        variant="outlined"
+      >
+        {t("navigation.users")}
+      </Button>
+      <Button
         size="small"
         variant="outlined"
         color="error"
@@ -128,7 +136,9 @@ export const LdapServersPage = () => {
   const [testServer, { isLoading: isTesting }] = useTestLdapServerMutation()
   const [serverToDelete, setServerToDelete] = useState<LdapServer | null>(null)
   const [deleteError, setDeleteError] = useState(false)
-  const data = currentData ?? (isFetching ? lastData : undefined)
+  const data = error
+    ? undefined
+    : (currentData ?? (isFetching ? lastData : undefined))
   const servers = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
@@ -214,23 +224,30 @@ export const LdapServersPage = () => {
         <Button component={Link} to="/main" variant="outlined">
           {t("common.back")}
         </Button>
-        <Button component={Link} to="/ldap-servers/create" variant="contained">
-          {t("common.create")}
-        </Button>
+        {data && (
+          <Button
+            component={Link}
+            to="/ldap-servers/create"
+            variant="contained"
+          >
+            {t("common.create")}
+          </Button>
+        )}
       </Box>
 
-      {isMobile && (
+      {data && isMobile && (
         <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
-      <ListProgress isFetching={isFetching} />
+      <ListProgress isFetching={isFetching && data !== undefined} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {t("ldapServers.loadError")}
+          {getApiErrorDetail("data" in error ? error.data : undefined) ??
+            t("ldapServers.loadError")}
         </Typography>
       )}
 
-      {!isFetching && !error && servers.length === 0 && (
+      {data && !isFetching && servers.length === 0 && (
         <Typography color="text.secondary">{t("ldapServers.empty")}</Typography>
       )}
 
@@ -293,7 +310,7 @@ export const LdapServersPage = () => {
         </>
       )}
 
-      {!isMobile && (servers.length > 0 || isFetching) && (
+      {!isMobile && servers.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small" aria-busy={isFetching}>
             <TableHead>

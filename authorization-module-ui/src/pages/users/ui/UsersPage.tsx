@@ -37,6 +37,7 @@ import {
   useRestoreUserMutation,
 } from "../../../entities/user"
 import type { User, UserSortField } from "../../../entities/user"
+import { getApiErrorDetail } from "../../../shared/api/baseApi"
 import {
   ListProgress,
   ListSortControls,
@@ -150,7 +151,9 @@ export const UsersPage = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [deleteError, setDeleteError] = useState(false)
   const [restoreError, setRestoreError] = useState(false)
-  const data = currentData ?? (isFetching ? lastData : undefined)
+  const data = error
+    ? undefined
+    : (currentData ?? (isFetching ? lastData : undefined))
   const users = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = data?.pages ?? 0
@@ -231,32 +234,35 @@ export const UsersPage = () => {
         <Button component={Link} to="/main" variant="outlined">
           {t("common.back")}
         </Button>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={showDeleted}
-                onChange={event => {
-                  handleShowDeletedChange(event.target.checked)
-                }}
-              />
-            }
-            label={t("users.showDeleted")}
-          />
-          <Button component={Link} to="/users/create" variant="contained">
-            {t("common.create")}
-          </Button>
-        </Box>
+        {data && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showDeleted}
+                  onChange={event => {
+                    handleShowDeletedChange(event.target.checked)
+                  }}
+                />
+              }
+              label={t("users.showDeleted")}
+            />
+            <Button component={Link} to="/users/create" variant="contained">
+              {t("common.create")}
+            </Button>
+          </Box>
+        )}
       </Box>
 
-      {isMobile && (
+      {data && isMobile && (
         <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
       )}
-      <ListProgress isFetching={isFetching} />
+      <ListProgress isFetching={isFetching && data !== undefined} />
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
-          {t("users.loadError")}
+          {getApiErrorDetail("data" in error ? error.data : undefined) ??
+            t("users.loadError")}
         </Typography>
       )}
 
@@ -266,7 +272,7 @@ export const UsersPage = () => {
         </Typography>
       )}
 
-      {!isFetching && !error && users.length === 0 && (
+      {data && !isFetching && users.length === 0 && (
         <Typography color="text.secondary">{t("users.empty")}</Typography>
       )}
 
@@ -356,7 +362,7 @@ export const UsersPage = () => {
         </>
       )}
 
-      {!isMobile && (users.length > 0 || isFetching) && (
+      {!isMobile && users.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small" aria-busy={isFetching}>
             <TableHead>

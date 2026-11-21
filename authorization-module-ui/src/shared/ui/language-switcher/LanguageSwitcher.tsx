@@ -1,24 +1,18 @@
 import { Box, Button } from "@mui/material"
-import { useTranslation } from "react-i18next"
-
-const LANGUAGES = [
-  { code: "ru", label: "RU" },
-  { code: "en", label: "EN" },
-] as const
+import { languages, useLanguage } from "./useLanguage"
 
 export const LanguageSwitcher = () => {
-  const { i18n } = useTranslation()
-  const current = (i18n.resolvedLanguage ?? i18n.language).split("-")[0]
+  const { language, changeLanguage } = useLanguage()
 
   return (
     <Box sx={{ display: "flex", gap: 0.5 }}>
-      {LANGUAGES.map(({ code, label }) => (
+      {languages.map(({ code, label }) => (
         <Button
           key={code}
           size="small"
-          variant={current === code ? "contained" : "outlined"}
+          variant={language === code ? "contained" : "outlined"}
           onClick={() => {
-            void i18n.changeLanguage(code)
+            changeLanguage(code)
           }}
         >
           {label}
