@@ -90,9 +90,7 @@ export const AuthenticatedLayout = () => {
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        maxWidth: isFullWidth ? "none" : 1280,
         minHeight: "100vh",
-        mx: "auto",
       }}
     >
       <PageHeader
@@ -144,7 +142,14 @@ export const AuthenticatedLayout = () => {
             <SideNavigation compactOnMobile />
           </Box>
         )}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            maxWidth: isFullWidth ? "none" : 1600,
+            mx: "auto",
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
