@@ -3,22 +3,36 @@ import type { ReactNode } from "react"
 
 type PageHeaderProps = {
   title: string
+  leadingAction?: ReactNode
   actions: ReactNode
 }
 
-export const PageHeader = ({ title, actions }: PageHeaderProps) => (
+export const PageHeader = ({
+  title,
+  leadingAction,
+  actions,
+}: PageHeaderProps) => (
   <Box
     component="header"
-    sx={{
+    sx={theme => ({
       display: "flex",
       alignItems: "center",
       flexWrap: "wrap",
       columnGap: 2,
       rowGap: 1,
       px: 2,
-      pt: 2,
-    }}
+      py: 1,
+      borderBottom: 1,
+      borderColor: "divider",
+      backgroundColor: "#dce6fb",
+      backgroundImage: "linear-gradient(110deg, #e8efff, #cddaf5)",
+      ...theme.applyStyles("dark", {
+        backgroundColor: "#23304a",
+        backgroundImage: "linear-gradient(110deg, #1c2639, #2b3b59)",
+      }),
+    })}
   >
+    {leadingAction}
     <Typography
       variant="h4"
       component="h1"

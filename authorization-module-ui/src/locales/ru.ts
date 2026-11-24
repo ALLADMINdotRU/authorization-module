@@ -33,6 +33,10 @@ export default {
   },
   navigation: {
     home: "Главная",
+    homeMessage: "Вы на главной странице",
+    sections: "Разделы",
+    openMenu: "Открыть меню",
+    closeMenu: "Закрыть меню",
     profile: "Профиль",
     users: "Пользователи",
     roles: "Роли",
@@ -45,6 +49,8 @@ export default {
     theme: "Тема",
     light: "Светлая",
     dark: "Тёмная",
+    fullWidth: "Во всю ширину",
+    alwaysShowMenu: "Всегда показывать меню",
   },
   login: {
     title: "Модуль авторизации",

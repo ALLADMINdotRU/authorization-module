@@ -1,5 +1,7 @@
 import { useId, useState } from "react"
 import Brightness6Outlined from "@mui/icons-material/Brightness6Outlined"
+import CheckBoxOutlined from "@mui/icons-material/CheckBoxOutlined"
+import CheckBoxOutlineBlankOutlined from "@mui/icons-material/CheckBoxOutlineBlankOutlined"
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined"
 import PersonOutlined from "@mui/icons-material/PersonOutlined"
 import {
@@ -22,12 +24,24 @@ import { languages, useLanguage } from "../../shared/ui/language-switcher"
 type UserMenuProps = {
   user: UserProfile
   isLoggingOut: boolean
+  isFullWidth: boolean
+  onToggleFullWidth: () => void
+  isMenuPinned: boolean
+  onToggleMenuPinned: () => void
   onLogout: () => void
 }
 
 const fullWidth = { gridColumn: "1 / -1" }
 
-export const UserMenu = ({ user, isLoggingOut, onLogout }: UserMenuProps) => {
+export const UserMenu = ({
+  user,
+  isLoggingOut,
+  isFullWidth,
+  onToggleFullWidth,
+  isMenuPinned,
+  onToggleMenuPinned,
+  onLogout,
+}: UserMenuProps) => {
   const { t } = useTranslation()
   const { language, changeLanguage } = useLanguage()
   const { mode, setMode, systemMode } = useColorScheme()
@@ -57,6 +71,7 @@ export const UserMenu = ({ user, isLoggingOut, onLogout }: UserMenuProps) => {
         aria-haspopup="menu"
         aria-controls={isOpen ? menuId : undefined}
         aria-expanded={isOpen}
+        sx={{ p: 0 }}
         onClick={event => {
           setAnchor(isOpen ? null : event.currentTarget)
         }}
@@ -64,7 +79,15 @@ export const UserMenu = ({ user, isLoggingOut, onLogout }: UserMenuProps) => {
         <Avatar
           aria-hidden="true"
           src={getUserPhotoUrl(user, "avatar")}
-          sx={{ width: 64, height: 64, fontSize: "1.5rem" }}
+          sx={{
+            width: 64,
+            height: 64,
+            boxSizing: "border-box",
+            border: 4,
+            borderColor: "#b4bac1",
+            "&:hover": { borderColor: "#b1b2b4" },
+            fontSize: "1.5rem",
+          }}
         >
           {initials.toUpperCase()}
         </Avatar>
@@ -124,6 +147,38 @@ export const UserMenu = ({ user, isLoggingOut, onLogout }: UserMenuProps) => {
             {t(isDark ? "userMenu.dark" : "userMenu.light")}
           </Typography>
         </MenuItem>
+        {[
+          {
+            label: t("userMenu.fullWidth"),
+            checked: isFullWidth,
+            toggle: onToggleFullWidth,
+          },
+          {
+            label: t("userMenu.alwaysShowMenu"),
+            checked: isMenuPinned,
+            toggle: onToggleMenuPinned,
+          },
+        ].map(({ label, checked, toggle }) => (
+          <MenuItem
+            key={label}
+            role="menuitemcheckbox"
+            aria-checked={checked}
+            onClick={() => {
+              toggle()
+              closeMenu()
+            }}
+            sx={fullWidth}
+          >
+            <ListItemIcon>
+              {checked ? (
+                <CheckBoxOutlined fontSize="small" />
+              ) : (
+                <CheckBoxOutlineBlankOutlined fontSize="small" />
+              )}
+            </ListItemIcon>
+            <ListItemText>{label}</ListItemText>
+          </MenuItem>
+        ))}
         <Divider component="li" sx={fullWidth} />
         <MenuItem
           disabled={isLoggingOut}

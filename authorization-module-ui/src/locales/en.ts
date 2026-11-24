@@ -33,6 +33,10 @@ export default {
   },
   navigation: {
     home: "Home",
+    homeMessage: "You are on the home page",
+    sections: "Sections",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
     profile: "Profile",
     users: "Users",
     roles: "Roles",
@@ -45,6 +49,8 @@ export default {
     theme: "Theme",
     light: "Light",
     dark: "Dark",
+    fullWidth: "Full width",
+    alwaysShowMenu: "Always show menu",
   },
   login: {
     title: "Authorization module",
