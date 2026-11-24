@@ -22,7 +22,7 @@ import {
   useMediaQuery,
 } from "@mui/material"
 import { useTranslation } from "react-i18next"
-import { Link, Navigate, useParams } from "react-router-dom"
+import { Navigate, useParams } from "react-router-dom"
 import {
   useImportLdapUserMutation,
   useListLdapUsersQuery,
@@ -153,15 +153,6 @@ const LdapUsersList = ({ serverId }: { serverId: number }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Button
-        component={Link}
-        to="/ldap-servers"
-        variant="outlined"
-        sx={{ mb: 2 }}
-      >
-        {t("common.back")}
-      </Button>
-
       <ListProgress isFetching={isFetching && data !== undefined} />
 
       {error && (

@@ -221,38 +221,33 @@ export const UsersPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box
-        sx={{
-          mb: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 2,
-          flexWrap: "wrap",
-        }}
-      >
-        <Button component={Link} to="/main" variant="outlined">
-          {t("common.back")}
-        </Button>
-        {data && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={showDeleted}
-                  onChange={event => {
-                    handleShowDeletedChange(event.target.checked)
-                  }}
-                />
-              }
-              label={t("users.showDeleted")}
-            />
-            <Button component={Link} to="/users/create" variant="contained">
-              {t("common.create")}
-            </Button>
-          </Box>
-        )}
-      </Box>
+      {data && (
+        <Box
+          sx={{
+            mb: 2,
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showDeleted}
+                onChange={event => {
+                  handleShowDeletedChange(event.target.checked)
+                }}
+              />
+            }
+            label={t("users.showDeleted")}
+          />
+          <Button component={Link} to="/users/create" variant="contained">
+            {t("common.create")}
+          </Button>
+        </Box>
+      )}
 
       {data && isMobile && (
         <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />

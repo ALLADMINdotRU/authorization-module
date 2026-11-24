@@ -211,20 +211,8 @@ export const LdapServersPage = () => {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Box
-        sx={{
-          mb: 2,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 2,
-          flexWrap: "wrap",
-        }}
-      >
-        <Button component={Link} to="/main" variant="outlined">
-          {t("common.back")}
-        </Button>
-        {data && (
+      {data && (
+        <Box sx={{ mb: 2, display: "flex", justifyContent: "flex-end" }}>
           <Button
             component={Link}
             to="/ldap-servers/create"
@@ -232,8 +220,8 @@ export const LdapServersPage = () => {
           >
             {t("common.create")}
           </Button>
-        )}
-      </Box>
+        </Box>
+      )}
 
       {data && isMobile && (
         <ListSortControls fields={sortLabels} sort={sort} onSort={sortBy} />
